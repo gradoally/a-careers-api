@@ -23,13 +23,37 @@ namespace SomeDAO.Backend.Services
 
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
+            try
+            {
+                await RunImplAsync(cancellationToken);
+                currentTask.Options.Interval = options.NewItemDetectorInterval;
+            }
+            catch (TonClientException ex)
+            {
+                if (currentTask.RunStatus.FailsCount < 5)
+                {
+                    logger.LogError(ex, "TonClient exception catched. Will retry in a moment.");
+                    currentTask.Options.Interval = TimeSpan.FromSeconds(3);
+                }
+                else
+                {
+                    logger.LogError(
+                        ex,
+                        "TonClient exception catched, again. Too many fails ({Count}), will retry later (with usual interval).",
+                        currentTask.RunStatus.FailsCount);
+                }
+            }
+        }
+
+        protected async Task RunImplAsync(CancellationToken cancellationToken)
+        {
             await tonClient.InitIfNeeded().ConfigureAwait(false);
 
             logger.LogDebug("Reading collection data from {Address}", options.CollectionAddress);
 
             var (nextItemIndex, _, _) = await TonRecipes.NFTs.GetCollectionData(tonClient, options.CollectionAddress).ConfigureAwait(false);
 
-            var nextIndex = (long)nextItemIndex;
+            var nextIndex = (int)nextItemIndex;
             var lastIndexInNetwork = nextIndex - 1;
 
             logger.LogDebug("Next item index in smc is: {Value}", nextIndex);

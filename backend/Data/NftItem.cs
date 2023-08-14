@@ -5,7 +5,7 @@ namespace SomeDAO.Backend.Data
     public class NftItem
     {
         [PrimaryKey]
-        public long Index { get; set; }
+        public int Index { get; set; }
 
         [NotNull, Indexed(Unique = true)]
         public string Address { get; set; } = string.Empty;

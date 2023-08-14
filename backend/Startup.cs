@@ -7,6 +7,7 @@ namespace SomeDAO.Backend
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using RecurrentTasks;
     using SomeDAO.Backend.Services;
     using TonLibDotNet;
     using TonLibDotNet.Types;
@@ -43,7 +44,7 @@ namespace SomeDAO.Backend
 
             RegisteredTasks = new List<Type>
                 {
-                    typeof(NewItemDetectorService),
+                    typeof(ITask<NewItemDetectorService>),
                 }
                 .AsReadOnly();
         }

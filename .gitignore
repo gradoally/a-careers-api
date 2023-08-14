@@ -1,0 +1,8 @@
+/.vs
+*.user
+bin
+obj
+log
+cache
+*.dll
+*.sqlite

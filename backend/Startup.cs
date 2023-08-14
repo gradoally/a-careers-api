@@ -2,11 +2,13 @@ namespace SomeDAO.Backend
 {
     using System;
     using System.Collections.Generic;
+    using System.Reflection;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.HttpOverrides;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
+    using Microsoft.OpenApi.Models;
     using RecurrentTasks;
     using SomeDAO.Backend.Services;
     using TonLibDotNet;
@@ -42,6 +44,22 @@ namespace SomeDAO.Backend
 
             services.AddTask<NewItemDetectorService>(o => o.AutoStart(bo.NewItemDetectorInterval));
 
+            services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen(o =>
+            {
+                o.SwaggerDoc("backoffice", new OpenApiInfo()
+                {
+                    Title = "Backoffice API",
+                    Description = "Backoffice API for SomeDAO frontend.",
+                    Version = "backoffice",
+                });
+                o.EnableAnnotations();
+
+                var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                o.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+            });
+
             RegisteredTasks = new List<Type>
                 {
                     typeof(ITask<NewItemDetectorService>),
@@ -62,6 +80,9 @@ namespace SomeDAO.Backend
 
             app.UseMiddleware<RobotsTxtMiddleware>();
             app.UseMiddleware<HealthMiddleware>();
+
+            app.UseSwagger();
+            app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/backoffice/swagger.json", "Backoffice API"));
 
             app.UseRouting();
             app.UseEndpoints(endpoints =>

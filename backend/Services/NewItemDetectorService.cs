@@ -11,21 +11,23 @@ namespace SomeDAO.Backend.Services
         private readonly ILogger logger;
         private readonly IDbProvider dbProvider;
         private readonly ITonClient tonClient;
+        private readonly IDataParser dataParser;
         private readonly BackendOptions options;
 
-        public NewItemDetectorService(ILogger<NewItemDetectorService> logger, IDbProvider dbProvider, ITonClient tonClient, IOptions<BackendOptions> options)
+        public NewItemDetectorService(ILogger<NewItemDetectorService> logger, IDbProvider dbProvider, ITonClient tonClient, IOptions<BackendOptions> options, IDataParser dataParser)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             this.tonClient = tonClient ?? throw new ArgumentNullException(nameof(tonClient));
             this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+            this.dataParser = dataParser ?? throw new ArgumentNullException(nameof(dataParser));
         }
 
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
             try
             {
-                await RunImplAsync(cancellationToken);
+                await RunImplAsync();
                 currentTask.Options.Interval = options.NewItemDetectorInterval;
             }
             catch (TonClientException ex)
@@ -45,7 +47,7 @@ namespace SomeDAO.Backend.Services
             }
         }
 
-        protected async Task RunImplAsync(CancellationToken cancellationToken)
+        protected async Task RunImplAsync()
         {
             await tonClient.InitIfNeeded().ConfigureAwait(false);
 
@@ -77,16 +79,7 @@ namespace SomeDAO.Backend.Services
 
                 logger.LogDebug("NFT #{Index} address is {Address}", lastIndexInDb, adr);
 
-                var item = new NftItem
-                {
-                    Index = lastIndexInDb,
-                    Address = adr
-                };
-
-                var info = await TonRecipes.NFTs.GetNftData(tonClient, adr).ConfigureAwait(false);
-                item.Init = info.init;
-                item.OwnerAddress = info.ownerAddress;
-                item.LastUpdate = DateTimeOffset.UtcNow;
+                var item = await dataParser.GetNftItem(adr).ConfigureAwait(false);
 
                 await dbProvider.MainDb.InsertAsync(item).ConfigureAwait(false);
 

@@ -13,9 +13,13 @@ namespace SomeDAO.Backend.Data
         [NotNull, Indexed]
         public DateTimeOffset LastUpdate { get; set; }
 
-        [NotNull]
-        public bool Init { get; set; }
-
         public string? OwnerAddress { get; set; }
+
+        public string? LastTxHash { get; set; }
+
+        public long LastTxLt { get; set; }
+
+        [NotNull, Indexed]
+        public bool UpdateNeeded { get; set; }
     }
 }

@@ -41,8 +41,11 @@ namespace SomeDAO.Backend
             services.AddSingleton<ITonClient, TonClient>();
 
             services.AddSingleton<IDbProvider, DbProvider>();
+            services.AddSingleton<IDataParser, DataParser>();
 
             services.AddTask<NewItemDetectorService>(o => o.AutoStart(bo.NewItemDetectorInterval));
+            services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
+            services.AddTask<ItemUpdateChecker>(o => o.AutoStart(bo.ItemUpdateCheckerInterval));
 
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();

@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using SomeDAO.Backend.Data;
+using SomeDAO.Backend.Services;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace SomeDAO.Backend.Api
@@ -11,6 +13,13 @@ namespace SomeDAO.Backend.Api
     [SwaggerResponse(400, "Request is invalid (wrong structure, unauthorized etc).")]
     public class SearchController : ControllerBase
     {
+        private readonly ISearchService searchService;
+
+        public SearchController(ISearchService searchService)
+        {
+            this.searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
+        }
+
         /// <summary>
         /// API access check.
         /// </summary>
@@ -21,6 +30,31 @@ namespace SomeDAO.Backend.Api
         public ActionResult Ping()
         {
             return Ok("Pong");
+        }
+
+        /// <summary>
+        /// Search.
+        /// </summary>
+        [HttpGet]
+        public ActionResult Search(string text)
+        {
+            return Ok(searchService.Find(text).Select(x => new SearchResultItem(x)));
+        }
+
+        public class SearchResultItem
+        {
+            public SearchResultItem(NftItem nft)
+            {
+                Id = nft.Index;
+                Address = nft.Address;
+                OwnerAddress = nft.OwnerAddress;
+            }
+
+            public int Id { get; set; }
+
+            public string Address { get; set; }
+
+            public string? OwnerAddress { get; set; }
         }
     }
 }

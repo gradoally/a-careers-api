@@ -42,10 +42,13 @@ namespace SomeDAO.Backend
 
             services.AddSingleton<IDbProvider, DbProvider>();
             services.AddSingleton<IDataParser, DataParser>();
+            services.AddSingleton<SearchService>();
+            services.AddSingleton<ISearchService>(sp => sp.GetRequiredService<SearchService>());
 
             services.AddTask<NewItemDetectorService>(o => o.AutoStart(bo.NewItemDetectorInterval));
             services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
             services.AddTask<ItemUpdateChecker>(o => o.AutoStart(bo.ItemUpdateCheckerInterval));
+            services.AddTask<SearchService>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
 
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();

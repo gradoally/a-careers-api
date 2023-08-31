@@ -4,6 +4,6 @@ namespace SomeDAO.Backend.Services
 {
     public interface IDataParser
     {
-        Task<NftItem?> GetNftItem(string address);
+        Task<Order> GetNftItem(string address);
     }
 }

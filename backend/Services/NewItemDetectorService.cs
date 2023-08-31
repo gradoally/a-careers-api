@@ -27,8 +27,13 @@ namespace SomeDAO.Backend.Services
         {
             try
             {
-                await RunImplAsync();
+                var updated = await RunImplAsync();
                 currentTask.Options.Interval = options.NewItemDetectorInterval;
+
+                if (updated)
+                {
+                    scopeServiceProvider.GetRequiredService<ITask<SearchService>>().TryRunImmediately();
+                }
             }
             catch (TonClientException ex)
             {
@@ -47,7 +52,7 @@ namespace SomeDAO.Backend.Services
             }
         }
 
-        protected async Task RunImplAsync()
+        protected async Task<bool> RunImplAsync()
         {
             await tonClient.InitIfNeeded().ConfigureAwait(false);
 
@@ -60,13 +65,13 @@ namespace SomeDAO.Backend.Services
 
             logger.LogDebug("Next item index in smc is: {Value}", nextIndex);
 
-            var last = await dbProvider.MainDb.Table<NftItem>().OrderByDescending(x => x.Index).FirstOrDefaultAsync().ConfigureAwait(false);
+            var last = await dbProvider.MainDb.Table<Order>().OrderByDescending(x => x.Index).FirstOrDefaultAsync().ConfigureAwait(false);
             var lastIndexInDb = last?.Index ?? -1;
 
             if (lastIndexInDb == lastIndexInNetwork)
             {
                 logger.LogInformation("Last known NFT index is already {Value}, there is no new NFTs, nothing to load.", lastIndexInDb);
-                return;
+                return false;
             }
 
             logger.LogDebug("Need to download {Count} new NFTs", lastIndexInNetwork - lastIndexInDb);
@@ -85,6 +90,8 @@ namespace SomeDAO.Backend.Services
 
                 logger.LogInformation("NFT #{Index} (address {Address}) added, owner is {Owner}", item.Index, item.Address, item.OwnerAddress);
             }
+
+            return true;
         }
     }
 }

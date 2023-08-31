@@ -55,7 +55,7 @@ namespace SomeDAO.Backend.Services
             {
                 counter++;
 
-                var needUpdate = await dbProvider.MainDb.Table<NftItem>().OrderBy(x => x.LastUpdate).FirstOrDefaultAsync(x => x.UpdateNeeded);
+                var needUpdate = await dbProvider.MainDb.Table<Order>().OrderBy(x => x.LastUpdate).FirstOrDefaultAsync(x => x.UpdateNeeded);
                 if (needUpdate == null)
                 {
                     logger.LogDebug("Update queue is empty");

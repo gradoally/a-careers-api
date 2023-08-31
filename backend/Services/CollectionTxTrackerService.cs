@@ -76,7 +76,7 @@ namespace SomeDAO.Backend.Services
                         continue;
                     }
 
-                    var nft = await dbProvider.MainDb.Table<NftItem>().FirstOrDefaultAsync(x => x.Address == fromBnc);
+                    var nft = await dbProvider.MainDb.Table<Order>().FirstOrDefaultAsync(x => x.Address == fromBnc);
                     if (nft == null)
                     {
                         logger.LogInformation("Tx from unknown address {Address}, will start NewItemDetector... ({Hash} / {LT})", from, hash, lt);

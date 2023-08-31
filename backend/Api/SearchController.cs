@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using SomeDAO.Backend.Data;
 using SomeDAO.Backend.Services;
 using Swashbuckle.AspNetCore.Annotations;
@@ -14,47 +15,43 @@ namespace SomeDAO.Backend.Api
     public class SearchController : ControllerBase
     {
         private readonly ISearchService searchService;
+        private readonly BackendOptions options;
 
-        public SearchController(ISearchService searchService)
+        public SearchController(ISearchService searchService, IOptions<BackendOptions> options)
         {
             this.searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
+            this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         }
 
         /// <summary>
-        /// API access check.
+        /// Statistics.
         /// </summary>
-        /// <remarks>Returns "Pong" text. Maybe used for health-check.</remarks>
         [HttpGet]
-        [Produces(System.Net.Mime.MediaTypeNames.Text.Plain)]
-        [SwaggerResponse(200, "Successful execution. Response text equals to \"Pong\".")]
-        public ActionResult Ping()
+        public Statistics Stat()
         {
-            return Ok("Pong");
+            var res = new Statistics()
+            {
+                Collection = options.CollectionAddress,
+                OrdersTotal = searchService.Count,
+            };
+
+            return res;
         }
 
         /// <summary>
         /// Search.
         /// </summary>
         [HttpGet]
-        public ActionResult Search(string text)
+        public List<Order> Search(string text)
         {
-            return Ok(searchService.Find(text).Select(x => new SearchResultItem(x)));
+            return searchService.Find(text).ToList();
         }
 
-        public class SearchResultItem
+        public class Statistics
         {
-            public SearchResultItem(NftItem nft)
-            {
-                Id = nft.Index;
-                Address = nft.Address;
-                OwnerAddress = nft.OwnerAddress;
-            }
+            public string Collection { get; set; } = string.Empty;
 
-            public int Id { get; set; }
-
-            public string Address { get; set; }
-
-            public string? OwnerAddress { get; set; }
+            public int OrdersTotal { get; set; }
         }
     }
 }

@@ -50,7 +50,7 @@ namespace SomeDAO.Backend.Services
             logger.LogInformation("Connected to {FilePath}", file);
 
             await conn.CreateTableAsync<Settings>().ConfigureAwait(false);
-            await conn.CreateTableAsync<NftItem>().ConfigureAwait(false);
+            await conn.CreateTableAsync<Order>().ConfigureAwait(false);
 
             await UpdateDb(conn).ConfigureAwait(false);
 

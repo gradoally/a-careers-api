@@ -4,6 +4,8 @@ namespace SomeDAO.Backend.Services
 {
     public interface ISearchService
     {
-        List<NftItem> Find(string text);
+        int Count { get; }
+
+        List<Order> Find(string text);
     }
 }

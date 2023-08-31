@@ -14,7 +14,7 @@ namespace SomeDAO.Backend.Services
         public const string PropNameDescription = "description";
         public const string PropNameStatus = "status";
         public const string PropNameAmount = "amount";
-        public const string PropNameTechAssignment = "technical_assigment";
+        public const string PropNameTechAssignment = "technical_assignment";
         public const string PropNameStartUnixTime = "starting_unix_time";
         public const string PropNameEndUnixTime = "ending_unix_time";
         public const string PropNameCreateUnixTime = "creation_unix_time";

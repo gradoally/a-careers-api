@@ -15,10 +15,6 @@ namespace SomeDAO.Backend.Data
         [Indexed]
         public string? OwnerAddress { get; set; }
 
-        [JsonIgnore]
-        [NotNull, Indexed]
-        public DateTimeOffset LastUpdate { get; set; }
-
         [JsonPropertyName(DataParser.PropNameImage)]
         public string? Image { get; set; }
 
@@ -60,6 +56,24 @@ namespace SomeDAO.Backend.Data
 
         [JsonIgnore]
         [NotNull, Indexed]
-        public bool UpdateNeeded { get; set; }
+        public DateTimeOffset LastUpdate { get; set; }
+
+        [JsonIgnore]
+        [NotNull, Indexed]
+        public DateTimeOffset UpdateAfter { get; set; }
+
+        [JsonIgnore]
+        private string? textToSearch = null;
+
+        [JsonIgnore]
+        [Ignore]
+        public string TextToSearch
+        {
+            get
+            {
+                textToSearch ??= Name?.ToUpperInvariant() + " " + Description?.ToUpperInvariant();
+                return textToSearch;
+            }
+        }
     }
 }

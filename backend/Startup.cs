@@ -7,7 +7,6 @@ namespace SomeDAO.Backend
     using Microsoft.AspNetCore.HttpOverrides;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Logging;
     using Microsoft.OpenApi.Models;
     using RecurrentTasks;
     using SomeDAO.Backend.Services;
@@ -45,20 +44,20 @@ namespace SomeDAO.Backend
             services.AddSingleton<SearchService>();
             services.AddSingleton<ISearchService>(sp => sp.GetRequiredService<SearchService>());
 
-            services.AddTask<NewItemDetectorService>(o => o.AutoStart(bo.NewItemDetectorInterval));
+            services.AddTask<NewOrdersDetector>(o => o.AutoStart(bo.NewOrdersDetectorInterval));
             services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
-            services.AddTask<ItemUpdateChecker>(o => o.AutoStart(bo.ItemUpdateCheckerInterval));
+            services.AddTask<OrderUpdateChecker>(o => o.AutoStart(bo.OrderUpdateCheckerInterval));
             services.AddTask<SearchService>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
 
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(o =>
             {
-                o.SwaggerDoc("backoffice", new OpenApiInfo()
+                o.SwaggerDoc("backend", new OpenApiInfo()
                 {
-                    Title = "Backoffice API",
-                    Description = "Backoffice API for SomeDAO frontend.",
-                    Version = "backoffice",
+                    Title = "Backend API",
+                    Description = "Backend API for SomeDAO frontend.",
+                    Version = "backend",
                 });
                 o.EnableAnnotations();
 
@@ -68,12 +67,12 @@ namespace SomeDAO.Backend
 
             RegisteredTasks = new List<Type>
                 {
-                    typeof(ITask<NewItemDetectorService>),
+                    typeof(ITask<NewOrdersDetector>),
                 }
                 .AsReadOnly();
         }
 
-        public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app)
         {
             app.UseForwardedHeaders();
             app.UseStatusCodePages();
@@ -88,7 +87,7 @@ namespace SomeDAO.Backend
             app.UseMiddleware<HealthMiddleware>();
 
             app.UseSwagger();
-            app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/backoffice/swagger.json", "Backoffice API"));
+            app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/backend/swagger.json", "Backend API"));
 
             app.UseRouting();
             app.UseEndpoints(endpoints =>

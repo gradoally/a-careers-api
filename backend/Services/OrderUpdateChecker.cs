@@ -5,7 +5,7 @@ using TonLibDotNet;
 
 namespace SomeDAO.Backend.Services
 {
-    public class ItemUpdateChecker : IRunnable
+    public class OrderUpdateChecker : IRunnable
     {
         private static readonly TimeSpan HaveMoreDataInterval = TimeSpan.FromSeconds(5);
 
@@ -16,7 +16,7 @@ namespace SomeDAO.Backend.Services
         private readonly BackendOptions options;
         private readonly IDataParser dataParser;
 
-        public ItemUpdateChecker(ILogger<ItemUpdateChecker> logger, IDbProvider dbProvider, IOptions<BackendOptions> options, IDataParser dataParser)
+        public OrderUpdateChecker(ILogger<OrderUpdateChecker> logger, IDbProvider dbProvider, IOptions<BackendOptions> options, IDataParser dataParser)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
@@ -29,7 +29,7 @@ namespace SomeDAO.Backend.Services
             try
             {
                 var haveMore = await RunImplAsync();
-                currentTask.Options.Interval = haveMore ? HaveMoreDataInterval : options.ItemUpdateCheckerInterval;
+                currentTask.Options.Interval = haveMore ? HaveMoreDataInterval : options.OrderUpdateCheckerInterval;
             }
             catch (TonClientException ex)
             {
@@ -46,6 +46,10 @@ namespace SomeDAO.Backend.Services
                         currentTask.RunStatus.FailsCount);
                 }
             }
+            finally
+            {
+                scopeServiceProvider.GetRequiredService<ITask<SearchService>>().TryRunImmediately();
+            }
         }
 
         protected async Task<bool> RunImplAsync()
@@ -55,25 +59,28 @@ namespace SomeDAO.Backend.Services
             {
                 counter++;
 
-                var needUpdate = await dbProvider.MainDb.Table<Order>().OrderBy(x => x.LastUpdate).FirstOrDefaultAsync(x => x.UpdateNeeded);
+                var needUpdate = await dbProvider.MainDb.Table<Order>()
+                    .OrderBy(x => x.UpdateAfter)
+                    .FirstOrDefaultAsync(x => x.UpdateAfter > DateTimeOffset.MinValue);
                 if (needUpdate == null)
                 {
                     logger.LogDebug("Update queue is empty");
                     return false;
                 }
 
-                counter++;
+                // move to end of queue (in case something is wrong with it)
+                needUpdate.UpdateAfter = DateTimeOffset.UtcNow;
+                await dbProvider.MainDb.UpdateAsync(needUpdate).ConfigureAwait(false);
 
                 var item = await dataParser.GetNftItem(needUpdate.Address).ConfigureAwait(false);
-
                 if (item == null)
                 {
-                    logger.LogWarning("NFT {Address} failed to update (null returned)", needUpdate.Address);
+                    logger.LogWarning("Order {Address} failed to update (null returned)", needUpdate.Address);
                 }
                 else
                 {
                     await dbProvider.MainDb.UpdateAsync(item).ConfigureAwait(false);
-                    logger.LogInformation("NFT {Address} updated", item.Address);
+                    logger.LogInformation("Order {Address} updated", item.Address);
                 }
             }
 

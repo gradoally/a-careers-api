@@ -79,21 +79,21 @@ namespace SomeDAO.Backend.Services
                     var nft = await dbProvider.MainDb.Table<Order>().FirstOrDefaultAsync(x => x.Address == fromBnc);
                     if (nft == null)
                     {
-                        logger.LogInformation("Tx from unknown address {Address}, will start NewItemDetector... ({Hash} / {LT})", from, hash, lt);
+                        logger.LogInformation("Tx from unknown address {Address}, will start NewOrderDetector... ({Hash} / {LT})", from, hash, lt);
                         unknownCount++;
                     }
                     else
                     {
                         if (nft.LastUpdate < time)
                         {
-                            nft.UpdateNeeded = true;
+                            nft.UpdateAfter = time;
                             await dbProvider.MainDb.UpdateAsync(nft).ConfigureAwait(false);
                             updatedCount++;
-                            logger.LogInformation("NFT {Address} queued for update ({Hash} / {LT})", from, hash, lt);
+                            logger.LogInformation("Order {Address} queued for update ({Hash} / {LT})", from, hash, lt);
                         }
                         else
                         {
-                            logger.LogDebug("NFT {Address} is already up-to-date, skipped ({Hash} / {LT})", from, hash, lt);
+                            logger.LogDebug("Order {Address} is already up-to-date, skipped ({Hash} / {LT})", from, hash, lt);
                         }
                     }
                 }
@@ -103,9 +103,14 @@ namespace SomeDAO.Backend.Services
 
             logger.LogInformation("Done. Processed {Count} pages with {Count} transactions (incl. {Count} bounced), found {Count} unknown and {Count} updated addresses, new lt={Value}", pages, txs, bounced, unknownCount, updatedCount, maxLt);
 
+            if (updatedCount > 0)
+            {
+                scopeServiceProvider.GetRequiredService<ITask<OrderUpdateChecker>>().TryRunImmediately();
+            }
+
             if (unknownCount > 0)
             {
-                scopeServiceProvider.GetRequiredService<ITask<NewItemDetectorService>>().TryRunImmediately();
+                scopeServiceProvider.GetRequiredService<ITask<NewOrdersDetector>>().TryRunImmediately();
             }
         }
 

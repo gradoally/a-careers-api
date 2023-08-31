@@ -7,7 +7,6 @@ namespace SomeDAO.Backend.Services
 {
     public class DataParser : IDataParser
     {
-        private readonly ILogger logger;
         private readonly ITonClient tonClient;
 
         public const string PropNameImage = "image";
@@ -39,9 +38,8 @@ namespace SomeDAO.Backend.Services
             return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.ASCII.GetBytes(name)));
         }
 
-        public DataParser(ILogger<DataParser> logger, ITonClient tonClient)
+        public DataParser(ITonClient tonClient)
         {
-            this.logger = logger;
             this.tonClient = tonClient;
         }
 
@@ -74,10 +72,10 @@ namespace SomeDAO.Backend.Services
                 Starting = DateTimeOffset.FromUnixTimeSeconds(info2.starting),
                 Ending = DateTimeOffset.FromUnixTimeSeconds(info2.ending),
 
-                LastUpdate = DateTimeOffset.UtcNow,
                 LastTxHash = state.LastTransactionId.Hash,
                 LastTxLt = state.LastTransactionId.Lt,
-                UpdateNeeded = false,
+                LastUpdate = DateTimeOffset.UtcNow,
+                UpdateAfter = DateTimeOffset.MinValue,
             };
 
             return item;
@@ -134,57 +132,57 @@ namespace SomeDAO.Backend.Services
             {
                 if (dic.TryGetValue(PropImage, out s))
                 {
-                    image = s.LoadStringSnake();
+                    image = s.LoadStringSnake() ?? string.Empty;
                 }
 
                 if (dic.TryGetValue(PropStatus, out s))
                 {
-                    status = s.LoadStringSnake();
+                    status = s.LoadStringSnake() ?? string.Empty;
                 }
 
                 if (dic.TryGetValue(PropName, out s))
                 {
-                    name = s.LoadStringSnake();
+                    name = s.LoadStringSnake() ?? string.Empty;
                 }
 
                 if (dic.TryGetValue(PropAmount, out s))
                 {
-                    amount = decimal.Parse(s.LoadStringSnake(), CultureInfo.InvariantCulture);
+                    amount = decimal.Parse(s.LoadStringSnake() ?? "0", CultureInfo.InvariantCulture);
                 }
 
                 if (dic.TryGetValue(PropDescription, out s))
                 {
-                    description = s.LoadStringSnake();
+                    description = s.LoadStringSnake() ?? string.Empty;
                 }
 
                 if (dic.TryGetValue(PropTechAssignment, out s))
                 {
-                    assignment = s.LoadStringSnake();
+                    assignment = s.LoadStringSnake() ?? string.Empty;
                 }
 
                 if (dic.TryGetValue(PropStartUnixTime, out s))
                 {
-                    start = long.Parse(s.LoadStringSnake(), CultureInfo.InvariantCulture);
+                    start = long.Parse(s.LoadStringSnake() ?? "0", CultureInfo.InvariantCulture);
                 }
 
                 if (dic.TryGetValue(PropEndUnixTime, out s))
                 {
-                    end = long.Parse(s.LoadStringSnake(), CultureInfo.InvariantCulture);
+                    end = long.Parse(s.LoadStringSnake() ?? "0", CultureInfo.InvariantCulture);
                 }
 
                 if (dic.TryGetValue(PropCreateUnixTime, out s))
                 {
-                    created = long.Parse(s.LoadStringSnake(), CultureInfo.InvariantCulture);
+                    created = long.Parse(s.LoadStringSnake() ?? "0", CultureInfo.InvariantCulture);
                 }
 
                 if (dic.TryGetValue(PropCategory, out s))
                 {
-                    category = s.LoadStringSnake();
+                    category = s.LoadStringSnake() ?? string.Empty;
                 }
 
                 if (dic.TryGetValue(PropCustomer, out s))
                 {
-                    customer = s.LoadStringSnake();
+                    customer = s.LoadStringSnake() ?? string.Empty;
                 }
             }
 

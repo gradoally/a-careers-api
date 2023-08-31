@@ -10,11 +10,11 @@
 
         public string CacheDirectory { get; set; } = "./cache";
 
-        public TimeSpan NewItemDetectorInterval { get; set; } = TimeSpan.FromMinutes(15);
+        public TimeSpan NewOrdersDetectorInterval { get; set; } = TimeSpan.FromMinutes(15);
 
         public TimeSpan CollectionTxTrackingInterval { get; set; } = TimeSpan.FromSeconds(10);
 
-        public TimeSpan ItemUpdateCheckerInterval { get; set; } = TimeSpan.FromMinutes(5);
+        public TimeSpan OrderUpdateCheckerInterval { get; set; } = TimeSpan.FromMinutes(5);
 
         public TimeSpan SearchCacheForceReloadInterval { get; set; } = TimeSpan.FromMinutes(5);
 

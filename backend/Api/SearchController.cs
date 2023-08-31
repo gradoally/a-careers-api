@@ -24,10 +24,10 @@ namespace SomeDAO.Backend.Api
         }
 
         /// <summary>
-        /// Statistics.
+        /// Returns some statistics.
         /// </summary>
         [HttpGet]
-        public Statistics Stat()
+        public ActionResult<Statistics> Stat()
         {
             var res = new Statistics()
             {
@@ -39,12 +39,40 @@ namespace SomeDAO.Backend.Api
         }
 
         /// <summary>
-        /// Search.
+        /// Returns top
         /// </summary>
+        /// <param name="query">Free query</param>
+        /// <param name="status">Show only specified status.</param>
+        /// <param name="category">Show only specified category.</param>
+        /// <param name="minAmount"></param>
+        /// <param name="maxAmount"></param>
+        /// <param name="orderBy">Sort field: 'creation_unix_time' or 'starting_unix_time' or 'ending_unix_time'.</param>
+        /// <param name="sort">Sort order: 'asc' or 'desc'.</param>
+        /// <returns></returns>
         [HttpGet]
-        public List<Order> Search(string text)
+        public ActionResult<List<Order>> Search(
+            string? query,
+            string? status,
+            string? category,
+            decimal? minAmount,
+            decimal? maxAmount,
+            string? orderBy = DataParser.PropNameCreateUnixTime,
+            string? sort = ISearchService.OrderAsc)
         {
-            return searchService.Find(text).ToList();
+            if (!DataParser.PropNameCreateUnixTime.Equals(orderBy, StringComparison.InvariantCultureIgnoreCase) &&
+                !DataParser.PropNameStartUnixTime.Equals(orderBy, StringComparison.InvariantCultureIgnoreCase) &&
+                !DataParser.PropNameEndUnixTime.Equals(orderBy, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return BadRequest($"Invalid 'orderBy' value (expected '{DataParser.PropNameCreateUnixTime}' or '{DataParser.PropNameStartUnixTime}' or '{DataParser.PropNameEndUnixTime}')");
+            }
+
+            if (!ISearchService.OrderAsc.Equals(sort, StringComparison.InvariantCultureIgnoreCase) &&
+                !ISearchService.OrderDesc.Equals(sort, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return BadRequest($"Invalid 'sort' value (expected '{ISearchService.OrderAsc}' or '{ISearchService.OrderDesc}')");
+            }
+
+            return searchService.Find(query?.Trim(), status?.Trim(), category?.Trim(), minAmount, maxAmount, orderBy, orderBy).ToList();
         }
 
         public class Statistics

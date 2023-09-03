@@ -6,6 +6,7 @@ namespace SomeDAO.Backend.Data
     {
         public const string KEY_DB_VERSION = "DB_VERSION";
         public const string LAST_COLLECTION_TX_LT = "LAST_COLLECTION_TX_LT";
+        public const string LAST_MASTER_TX_LT = "LAST_MASTER_TX_LT";
 
         [Obsolete("For data layer only")]
         public Settings()

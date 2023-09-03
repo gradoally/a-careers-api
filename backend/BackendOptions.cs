@@ -4,6 +4,8 @@
     {
         public string CollectionAddress { get; set; } = string.Empty;
 
+        public string MasterAddress { get; set; } = string.Empty;
+
         public bool UseMainnet { get; set; } = true;
 
         public string DatabaseFile { get; set; } = "./backend.sqlite";
@@ -13,6 +15,8 @@
         public TimeSpan NewOrdersDetectorInterval { get; set; } = TimeSpan.FromMinutes(15);
 
         public TimeSpan CollectionTxTrackingInterval { get; set; } = TimeSpan.FromSeconds(10);
+
+        public TimeSpan MasterTxTrackingInterval { get; set; } = TimeSpan.FromSeconds(10);
 
         public TimeSpan OrderUpdateCheckerInterval { get; set; } = TimeSpan.FromMinutes(5);
 

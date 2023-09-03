@@ -46,6 +46,7 @@ namespace SomeDAO.Backend
 
             services.AddTask<NewOrdersDetector>(o => o.AutoStart(bo.NewOrdersDetectorInterval));
             services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
+            services.AddTask<MasterTxTrackerService>(o => o.AutoStart(bo.MasterTxTrackingInterval));
             services.AddTask<OrderUpdateChecker>(o => o.AutoStart(bo.OrderUpdateCheckerInterval));
             services.AddTask<SearchService>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
 

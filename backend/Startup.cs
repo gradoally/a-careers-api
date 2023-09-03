@@ -65,6 +65,15 @@ namespace SomeDAO.Backend
                 o.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
             });
 
+            services.AddCors(o =>
+            {
+                o.AddDefaultPolicy(
+                    builder => builder
+                        .AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+            });
+
             RegisteredTasks = new List<Type>
                 {
                     typeof(ITask<NewOrdersDetector>),
@@ -90,6 +99,7 @@ namespace SomeDAO.Backend
             app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/backend/swagger.json", "Backend API"));
 
             app.UseRouting();
+            app.UseCors();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();

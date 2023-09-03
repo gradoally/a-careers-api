@@ -11,10 +11,10 @@ namespace SomeDAO.Backend.Services
         private readonly ILogger logger;
         private readonly IDbProvider dbProvider;
         private readonly ITonClient tonClient;
-        private readonly IDataParser dataParser;
+        private readonly DataParser dataParser;
         private readonly BackendOptions options;
 
-        public NewOrdersDetector(ILogger<NewOrdersDetector> logger, IDbProvider dbProvider, ITonClient tonClient, IOptions<BackendOptions> options, IDataParser dataParser)
+        public NewOrdersDetector(ILogger<NewOrdersDetector> logger, IDbProvider dbProvider, ITonClient tonClient, IOptions<BackendOptions> options, DataParser dataParser)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));

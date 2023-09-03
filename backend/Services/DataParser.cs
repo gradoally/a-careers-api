@@ -5,7 +5,7 @@ using TonLibDotNet.Cells;
 
 namespace SomeDAO.Backend.Services
 {
-    public class DataParser : IDataParser
+    public class DataParser
     {
         private readonly ITonClient tonClient;
 

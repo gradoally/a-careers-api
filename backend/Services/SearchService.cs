@@ -4,8 +4,11 @@ using SomeDAO.Backend.Data;
 
 namespace SomeDAO.Backend.Services
 {
-    public class SearchService : IRunnable, ISearchService
+    public class SearchService : IRunnable
     {
+        public const string OrderAsc = "asc";
+        public const string OrderDesc = "desc";
+
         private readonly ILogger logger;
         private readonly BackendOptions options;
 
@@ -60,7 +63,7 @@ namespace SomeDAO.Backend.Services
                 found = found.Where(x => Array.TrueForAll(words, z => x.TextToSearch.Contains(z, StringComparison.InvariantCulture)));
             }
 
-            var orderAsc = orderBySort == ISearchService.OrderAsc;
+            var orderAsc = orderBySort == SearchService.OrderAsc;
 
             var ordered = orderByField switch
             {

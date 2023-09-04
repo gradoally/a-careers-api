@@ -78,6 +78,10 @@ namespace SomeDAO.Backend
             RegisteredTasks = new List<Type>
                 {
                     typeof(ITask<NewOrdersDetector>),
+                    typeof(ITask<CollectionTxTrackerService>),
+                    typeof(ITask<MasterTxTrackerService>),
+                    typeof(ITask<OrderUpdateChecker>),
+                    typeof(ITask<SearchService>),
                 }
                 .AsReadOnly();
         }

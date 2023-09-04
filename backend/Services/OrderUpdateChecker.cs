@@ -14,9 +14,9 @@ namespace SomeDAO.Backend.Services
         private readonly ILogger logger;
         private readonly IDbProvider dbProvider;
         private readonly BackendOptions options;
-        private readonly IDataParser dataParser;
+        private readonly DataParser dataParser;
 
-        public OrderUpdateChecker(ILogger<OrderUpdateChecker> logger, IDbProvider dbProvider, IOptions<BackendOptions> options, IDataParser dataParser)
+        public OrderUpdateChecker(ILogger<OrderUpdateChecker> logger, IDbProvider dbProvider, IOptions<BackendOptions> options, DataParser dataParser)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));

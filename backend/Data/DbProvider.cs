@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
-using SomeDAO.Backend.Data;
 using SQLite;
 
-namespace SomeDAO.Backend.Services
+namespace SomeDAO.Backend.Data
 {
     public class DbProvider : IDbProvider, IDisposable
     {
@@ -19,7 +18,7 @@ namespace SomeDAO.Backend.Services
 
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            this.MainDb = GetMainDb(options.Value).GetAwaiter().GetResult();
+            MainDb = GetMainDb(options.Value).GetAwaiter().GetResult();
         }
 
         public SQLiteAsyncConnection MainDb { get; }

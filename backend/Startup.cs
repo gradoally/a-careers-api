@@ -9,6 +9,7 @@ namespace SomeDAO.Backend
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.OpenApi.Models;
     using RecurrentTasks;
+    using SomeDAO.Backend.Data;
     using SomeDAO.Backend.Services;
     using TonLibDotNet;
     using TonLibDotNet.Types;
@@ -40,12 +41,12 @@ namespace SomeDAO.Backend
             services.AddSingleton<ITonClient, TonClient>();
 
             services.AddSingleton<IDbProvider, DbProvider>();
-            services.AddSingleton<IDataParser, DataParser>();
+            services.AddSingleton<DataParser>();
             services.AddSingleton<SearchService>();
-            services.AddSingleton<ISearchService>(sp => sp.GetRequiredService<SearchService>());
 
             services.AddTask<NewOrdersDetector>(o => o.AutoStart(bo.NewOrdersDetectorInterval));
             services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
+            services.AddTask<MasterTxTrackerService>(o => o.AutoStart(bo.MasterTxTrackingInterval));
             services.AddTask<OrderUpdateChecker>(o => o.AutoStart(bo.OrderUpdateCheckerInterval));
             services.AddTask<SearchService>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
 

@@ -14,10 +14,10 @@ namespace SomeDAO.Backend.Api
     [SwaggerResponse(400, "Request is invalid (wrong structure, unauthorized etc).")]
     public class SearchController : ControllerBase
     {
-        private readonly ISearchService searchService;
+        private readonly SearchService searchService;
         private readonly BackendOptions options;
 
-        public SearchController(ISearchService searchService, IOptions<BackendOptions> options)
+        public SearchController(SearchService searchService, IOptions<BackendOptions> options)
         {
             this.searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
             this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
@@ -57,7 +57,7 @@ namespace SomeDAO.Backend.Api
             decimal? minAmount,
             decimal? maxAmount,
             string? orderBy = DataParser.PropNameCreateUnixTime,
-            string? sort = ISearchService.OrderAsc)
+            string? sort = SearchService.OrderAsc)
         {
             if (!DataParser.PropNameCreateUnixTime.Equals(orderBy, StringComparison.InvariantCultureIgnoreCase) &&
                 !DataParser.PropNameStartUnixTime.Equals(orderBy, StringComparison.InvariantCultureIgnoreCase) &&
@@ -66,10 +66,10 @@ namespace SomeDAO.Backend.Api
                 return BadRequest($"Invalid 'orderBy' value (expected '{DataParser.PropNameCreateUnixTime}' or '{DataParser.PropNameStartUnixTime}' or '{DataParser.PropNameEndUnixTime}')");
             }
 
-            if (!ISearchService.OrderAsc.Equals(sort, StringComparison.InvariantCultureIgnoreCase) &&
-                !ISearchService.OrderDesc.Equals(sort, StringComparison.InvariantCultureIgnoreCase))
+            if (!SearchService.OrderAsc.Equals(sort, StringComparison.InvariantCultureIgnoreCase) &&
+                !SearchService.OrderDesc.Equals(sort, StringComparison.InvariantCultureIgnoreCase))
             {
-                return BadRequest($"Invalid 'sort' value (expected '{ISearchService.OrderAsc}' or '{ISearchService.OrderDesc}')");
+                return BadRequest($"Invalid 'sort' value (expected '{SearchService.OrderAsc}' or '{SearchService.OrderDesc}')");
             }
 
             return searchService.Find(query?.Trim(), status?.Trim(), category?.Trim(), minAmount, maxAmount, orderBy, orderBy).ToList();

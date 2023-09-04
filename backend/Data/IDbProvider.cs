@@ -1,6 +1,6 @@
 ﻿using SQLite;
 
-namespace SomeDAO.Backend.Services
+namespace SomeDAO.Backend.Data
 {
     public interface IDbProvider
     {

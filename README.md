@@ -1,6 +1,8 @@
 ﻿Some DAO Backend
 ================
 
+Бэкенд для web3-системы на базе блокчейна TON. Хранит информацию об NFT-айтемах коллекции в локальной БД, предоставляет возможность поиска по базе для фронтенда. Оперативно обновляет информацию в БД при изменении данных в блокчейне.
+
 
 Требования к смартконтрактам
 ----------------------------
@@ -14,17 +16,19 @@
         * `image`, `name`, `description`, `status`, `technical_assigment`, `category`, `customer_addr` - строковые, хранятся в формате **Snake format**; 
         * `amount` - целое число, хранится как строка в формате **Snake format**; 
         * `starting_unix_time`, `ending_unix_time`, `creation_unix_time` - целое число обозначающее Unix file time seconds, хранится как строка в формате **Snake format**; 
-
+* Изменение данных в айтемах должно сопровождаться транзакцией на фиксированном адресе (адрес прослушивается, появление транзакций будет инициировать обновление соотв. айтемов);
 
 Процедура обновления данных
 ---------------------------
 
-Используется одновременно несколько способов получения событий об изменённых айтемах:
+Используется одновременно несколько способов получения событий об айтемах:
 
 1. Периодический (параметр `NewOrdersDetectorInterval`, по умолчанию 15 мин) вызов метода коллекции `get_collection_data` для получения информации о новых сминченных айтемах (путем проверки next item index). 
-2. Периодический (параметр `CollectionTxTrackingInterval`, по умолчанию 10 секунд(!)) просмотр новых транзакций на смартконтракте коллекции: 
-      * при обнаружении транзакций от новых (неизвестных) адресов вне очереди запускается метод (1) для проверки новых сминченных айтемов;
-      * при обнаружении транзакций от известных адресов (айтемов) запускается задача по их обновлению;
+2. Периодический (параметр `CollectionTxTrackingInterval`, по умолчанию 30 секунд) просмотр новых транзакций на смартконтракте коллекции: 
+      * при обнаружении транзакций на новые (неизвестные) адреса вне очереди запускается метод (1) для проверки новых сминченных айтемов;
+      * при обнаружении транзакций на известные адреса (айтемов) запускается задача по их обновлению;
+3. Периодический (параметр `MasterTxTrackingInterval`, по умолчанию 10 секунд) просмотр новых транзакций на фиксированном мастер-адресе: 
+      * при обнаружении транзакций на известные адреса (айтемов) запускается задача по их обновлению;
 
 
 Настройки системы
@@ -34,9 +38,13 @@
 
 **После изменения** файла настроек необходимо **перезапустить** приложение, чтобы измененный файл считался.
 
-Самым главным является параметр `CollectionAddress`, где указывается адрес коллекции.
+Самыми главнымм являются параметры:
+  * `CollectionAddress` - адрес самой коллекции;
+  * `MasterAddress` - адрес мастер-контракта, через который проходят изменения в айтемах;
 
-⚠ Важно! Если **меняется адрес** коллекции, то необходимо **удалить файл базы данных** (`backend.sqlite`)!
+⚠ Важно! Если меняется **адрес коллекции**, то помимо перезапуска необходимо **удалить файл базы данных** (`backend.sqlite`), чтобы стереть старые (неактуальные) айтемы!
+
+ℹ Для облегчения последующих обновлений системы можно не менять исходный файл `appsettings.json`, а сделать рядом новый с именем `appsettings.Production.json` и скопировать туда только параметры с изменяемыми значениями (важно следить за вложенностью Json-структур!). Система будет считывать оба файла при старте, и возьмет сначала значения по умолчанию из исновного файла, а потом обновит необходимые значения считанными из второго файла.
 
 
 Требования к серверу, развертывание и запуск системы
@@ -45,69 +53,7 @@
 Требования к серверу:
 
 * Для работы необходим [**Microsoft .NET 6.0**](https://dotnet.microsoft.com/en-us/download/dotnet/6.0), который работает на Linux, Windows и macOS.
-* **NGINX** рекомендуется в качестве реверс-прокси и для управления SSL сертификатом (через certbot);
+* [NGINX](https://nginx.org/) рекомендуется в качестве реверс-прокси и для управления SSL сертификатом (например бесплатный  от Let's Encrypt через [certbot](https://certbot.eff.org/));
 * В качестве базы данных используется **SQLite**, который не требует какой-либо предварительной установки.
 
-Порядок установки (на примере Ubuntu):
-
-1. Установить [**Microsoft .NET 6.0**](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) согласно инструкции на сайте. Более старшие версии (7.0 и 8.0 должны поддерживаться, но не работать: 7.0 не имеет long-term support, а 8.0 ещё не релиз).
-2. Установить [NGINX](https://nginx.org/) и [certbot](https://www.nginx.com/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/) согласно их инструкциям.
-3. Клонировать Git-репо в какую-либо папку на диске (например `/home/somebackend`).
-4. Самотестирование:
-    1. Запустить консоль (командную строку), перейти в папку `/home/somebackend`
-    2. Выполнить команду `dotnet test`
-    3. Через 1-2 мин работа должна закончиться зеленой строкой вида: `Passed!  - Failed: 0, Passed: 2, Skipped: 0, Total: 2, Duration: Х ms - backend.tests.dll (net6.0)`
-5. Перейти в папку `/home/somebackend/backoffice`
-6. Отредактировать `appsettings.json` (указать адрес коллекции, при необходимости исправить пути или другие параметры)
-7. Собрать приложение командой `dotnet publish -c Release -o /var/www/somebackend`, где после `-o` нужно указать целевую папку, откуда будет впоследствии производиться запуск.
-8. Скачать библиотеку tonlib:
-    ```
-    cd /var/www/backend
-    wget https://github.com/ton-blockchain/ton/releases/download/v2023.06/tonlibjson-linux-x86_64.so
-    ```
-    При этом следует выбрать правильный файл для текущей архитектуры процессора (tonlibjson-linux-arm64.so или tonlibjson-linux-x86_64.so).
-8. Добавить приложение в автозапуск, [например через systemd](https://learn.microsoft.com/ru-ru/troubleshoot/developer/webapps/aspnetcore/practice-troubleshoot-linux/2-3-configure-aspnet-core-application-start-automatically) используя такой файл описания сервиса:
-    ```
-    [Unit]
-    Description=Some Backend
-
-    [Service]
-    WorkingDirectory=/var/www/somebackend
-    ExecStart=/var/www/somebackend/backend
-    Restart=always
-    RestartSec=10
-    TimeoutStopSec=30
-    KillMode=process
-    KillSignal=SIGTERM
-    SyslogIdentifier=somebackend
-    User=www-data
-    Environment=ASPNETCORE_ENVIRONMENT=Production
-    Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
-
-    [Install]
-    WantedBy=multi-user.target
-    ```
-    Путь в строках `WorkingDirectory` и `ExecStart` должен соответствовать параметру `-o` с шага 7.
-9. Добавить сайт в Nginx используя такой файл описания сайта:
-    ```
-    server {
-        listen 80;
-        listen [::]:80;
-        server_name somebackend.example.com;
-
-        location / {
-            proxy_pass         http://localhost:5000;
-            proxy_http_version 1.1;
-            proxy_set_header   Upgrade $http_upgrade;
-            proxy_set_header   Connection keep-alive;
-            proxy_set_header   HOST $host;
-            proxy_cache_bypass $http_upgrade;
-            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header   X-Forwarded-Proto $scheme;
-            proxy_set_header   X-Real-IP $remote_addr;
-        }
-    }
-    ```
-    При этом в `server_name` нужно вписать ваше публичное DNS имя под которым будет работать система (не забудьте внести соответствующую A-запись в DNS).
-10. Запустить `certbot` и попросить его сделать бесплатный SSL для системы.
-11. Открыть https://somebackend.example.com/swagger в браузере - должна отобразиться страница Swagger-а.
+Порядок установки описан в файле [Deployment.md](Deployment.md). 

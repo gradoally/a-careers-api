@@ -6,19 +6,21 @@ namespace SomeDAO.Backend.Services
 {
 	public class WIPService : IRunnable
 	{
-		public static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
+		public static readonly TimeSpan Interval = TimeSpan.FromSeconds(5);
 
 		private readonly ILogger logger;
 		private readonly ITonClient tonClient;
 		private readonly IDbProvider dbProvider;
 		private readonly DataParser dataParser;
+		private readonly ITask task;
 
-		public WIPService(ILogger<WIPService> logger, ITonClient tonClient, IDbProvider dbProvider, DataParser dataParser)
+		public WIPService(ILogger<WIPService> logger, ITonClient tonClient, IDbProvider dbProvider, DataParser dataParser, ITask<SearchService> task)
 		{
 			this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			this.tonClient = tonClient ?? throw new ArgumentNullException(nameof(tonClient));
 			this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
 			this.dataParser = dataParser ?? throw new ArgumentNullException(nameof(dataParser));
+			this.task = task ?? throw new ArgumentNullException(nameof(task));
 		}
 
 		public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
@@ -39,6 +41,8 @@ namespace SomeDAO.Backend.Services
 			logger.LogInformation("Initial data saved into DB");
 
 			currentTask.Options.Interval = TimeSpan.Zero;
+
+			task.TryRunImmediately();
 		}
 	}
 }

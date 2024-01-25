@@ -1,58 +1,36 @@
-﻿using System.Globalization;
-using System.Numerics;
-using System.Text.Json.Serialization;
-using TonLibDotNet;
+﻿using TonLibDotNet;
 using TonLibDotNet.Cells;
 
 namespace SomeDAO.Backend.Data
 {
 	public class AdminContent
 	{
-		private const string PropNameCategory = "category";
-		private const string PropNameCanApproveUser = "can_approve_user";
-		private const string PropNameCanRevokeUser = "can_revoke_user";
-		private const string PropNameNickname = "nickname";
-		private const string PropNameAbout = "about";
-		private const string PropNameWebsite = "website";
-		private const string PropNamePortfolio = "portfolio";
-		private const string PropNameResume = "resume";
-		private const string PropNameSpecialization = "specialization";
+		private static readonly string PropCategory = EncodePropertyName("category");
+		private static readonly string PropCanApproveUser = EncodePropertyName("can_approve_user");
+		private static readonly string PropCanRevokeUser = EncodePropertyName("can_revoke_user");
+		private static readonly string PropNickname = EncodePropertyName("nickname");
+		private static readonly string PropAbout = EncodePropertyName("about");
+		private static readonly string PropWebsite = EncodePropertyName("website");
+		private static readonly string PropPortfolio = EncodePropertyName("portfolio");
+		private static readonly string PropResume = EncodePropertyName("resume");
+		private static readonly string PropSpecialization = EncodePropertyName("specialization");
 
-		private static readonly string PropCategory = EncodePropertyName(PropNameCategory);
-		private static readonly string PropCanApproveUser = EncodePropertyName(PropNameCanApproveUser);
-		private static readonly string PropCanRevokeUser = EncodePropertyName(PropNameCanRevokeUser);
-		private static readonly string PropNickname = EncodePropertyName(PropNameNickname);
-		private static readonly string PropAbout = EncodePropertyName(PropNameAbout);
-		private static readonly string PropWebsite = EncodePropertyName(PropNameWebsite);
-		private static readonly string PropPortfolio = EncodePropertyName(PropNamePortfolio);
-		private static readonly string PropResume = EncodePropertyName(PropNameResume);
-		private static readonly string PropSpecialization = EncodePropertyName(PropNameSpecialization);
-
-		[JsonPropertyName(PropNameCategory)]
 		public string? Category { get; set; }
 
-		[JsonPropertyName(PropNameCanApproveUser)]
 		public bool CanApproveUser { get; set; }
 
-		[JsonPropertyName(PropNameCanRevokeUser)]
 		public bool CanRevokeUser { get; set; }
 
-		[JsonPropertyName(PropNameNickname)]
 		public string? Nickname { get; set; }
 
-		[JsonPropertyName(PropNameAbout)]
 		public string? About { get; set; }
 
-		[JsonPropertyName(PropNameWebsite)]
 		public string? Website { get; set; }
 
-		[JsonPropertyName(PropNamePortfolio)]
 		public string? Portfolio { get; set; }
 
-		[JsonPropertyName(PropNameResume)]
 		public string? Resume { get; set; }
 
-		[JsonPropertyName(PropNameSpecialization)]
 		public string? Specialization { get; set; }
 
 		public void FillFrom(Cell dictCell)

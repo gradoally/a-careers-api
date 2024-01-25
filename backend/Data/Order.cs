@@ -1,4 +1,5 @@
-﻿using SQLite;
+﻿using System.Text.Json.Serialization;
+using SQLite;
 
 namespace SomeDAO.Backend.Data
 {
@@ -7,16 +8,43 @@ namespace SomeDAO.Backend.Data
 		[PrimaryKey]
 		public long Index { get; set; }
 
+		/// <summary>
+		/// Smartcontract address - in bounceable form.
+		/// </summary>
 		[NotNull, Indexed(Unique = true)]
 		public string Address { get; set; } = string.Empty;
 
-        [NotNull, Indexed]
+        [Indexed]
         public int Status { get; set; }
 
+		/// <summary>
+		/// User wallet address - in non-bounceable form.
+		/// </summary>
 		[NotNull, Indexed]
 		public string CustomerAddress { get; set; } = string.Empty;
 
+		/// <summary>
+		/// User wallet address - in non-bounceable form.
+		/// </summary>
 		[Indexed]
-		public string? FreelancerAddress { get; set; } = string.Empty;
-    }
+		public string? FreelancerAddress { get; set; }
+
+		public DateTimeOffset CreatedAt { get; set; }
+
+		public int ResponsesCount { get; set; }
+
+		[JsonIgnore]
+		private string? textToSearch = null;
+
+		[JsonIgnore]
+		[Ignore]
+		public string TextToSearch
+		{
+			get
+			{
+				textToSearch ??= Name?.ToUpperInvariant() + " " + Description?.ToUpperInvariant();
+				return textToSearch;
+			}
+		}
+	}
 }

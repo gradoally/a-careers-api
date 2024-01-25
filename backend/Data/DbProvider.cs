@@ -49,6 +49,8 @@ namespace SomeDAO.Backend.Data
             logger.LogInformation("Connected to {FilePath}", file);
 
             await conn.CreateTableAsync<Settings>().ConfigureAwait(false);
+            await conn.CreateTableAsync<Admin>().ConfigureAwait(false);
+            await conn.CreateTableAsync<User>().ConfigureAwait(false);
             await conn.CreateTableAsync<Order>().ConfigureAwait(false);
 
             await UpdateDb(conn).ConfigureAwait(false);

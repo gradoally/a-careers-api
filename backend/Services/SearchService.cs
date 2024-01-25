@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using RecurrentTasks;
 using SomeDAO.Backend.Data;
+using TonLibDotNet;
 
 namespace SomeDAO.Backend.Services
 {
@@ -12,7 +13,9 @@ namespace SomeDAO.Backend.Services
         private readonly ILogger logger;
         private readonly BackendOptions options;
 
-        private List<Order> items = new();
+        private List<Admin> admins = new();
+        private List<User> users = new();
+        private List<Order> orders = new();
 
         public SearchService(ILogger<SearchService> logger, IOptions<BackendOptions> options)
         {
@@ -24,55 +27,23 @@ namespace SomeDAO.Backend.Services
         {
             var db = scopeServiceProvider.GetRequiredService<IDbProvider>();
 
-            var list = await db.MainDb.Table<Order>().ToListAsync().ConfigureAwait(false);
+            var newAdmins = await db.MainDb.Table<Admin>().ToListAsync().ConfigureAwait(false);
+            logger.LogDebug("Loaded {Count} admins", newAdmins.Count);
 
-            logger.LogDebug("Loaded {Count} items", list.Count);
+            var newUsers = await db.MainDb.Table<User>().ToListAsync().ConfigureAwait(false);
+            logger.LogDebug("Loaded {Count} users", newUsers.Count);
 
-            items = list;
+            var newOrders = await db.MainDb.Table<Order>().ToListAsync().ConfigureAwait(false);
+            logger.LogDebug("Loaded {Count} orders", newOrders.Count);
+
+            admins = newAdmins;
+            users = newUsers;
+            orders = newOrders;
         }
 
-        public int Count => items.Count;
-
-        public List<Order> Find(string? query, string? status, string? category, decimal? minAmount, decimal? maxAmount, string orderByField, string orderBySort)
+        public User? FindUser(string addressAsBounceable)
         {
-            var found = items.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                found = found.Where(x => string.Equals(x.Status, status, StringComparison.InvariantCultureIgnoreCase));
-            }
-
-            if (!string.IsNullOrWhiteSpace(category))
-            {
-                found = found.Where(x => string.Equals(x.Category, category, StringComparison.InvariantCultureIgnoreCase));
-            }
-
-            if (minAmount != null)
-            {
-                found = found.Where(x => x.Amount >= minAmount);
-            }
-
-            if (maxAmount != null)
-            {
-                found = found.Where(x => x.Amount <= maxAmount);
-            }
-
-            if (!string.IsNullOrWhiteSpace(query))
-            {
-                var words = query.ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                found = found.Where(x => Array.TrueForAll(words, z => x.TextToSearch.Contains(z, StringComparison.InvariantCulture)));
-            }
-
-            var orderAsc = orderBySort == SearchService.OrderAsc;
-
-            var ordered = orderByField switch
-            {
-                DataParser.PropNameStartUnixTime => orderAsc ? found.OrderBy(x => x.Starting) : found.OrderByDescending(x => x.Starting),
-                DataParser.PropNameEndUnixTime => orderAsc ? found.OrderBy(x => x.Ending) : found.OrderByDescending(x => x.Ending),
-                _ => orderAsc ? found.OrderBy(x => x.Created) : found.OrderByDescending(x => x.Created),
-            };
-
-            return ordered.ThenBy(x => x.Index).Take(options.SearchMaxCount).ToList();
+            return users.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, addressAsBounceable));
         }
     }
 }

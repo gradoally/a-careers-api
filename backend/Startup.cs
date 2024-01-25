@@ -3,12 +3,13 @@ namespace SomeDAO.Backend
     using System;
     using System.Collections.Generic;
     using System.Reflection;
-    using Microsoft.AspNetCore.Builder;
+	using System.Text.Json;
+	using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.HttpOverrides;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.OpenApi.Models;
-    using RecurrentTasks;
+	using Microsoft.OpenApi.Models;
+	using RecurrentTasks;
     using SomeDAO.Backend.Data;
     using SomeDAO.Backend.Services;
     using TonLibDotNet;
@@ -44,17 +45,19 @@ namespace SomeDAO.Backend
             services.AddSingleton<DataParser>();
             services.AddSingleton<SearchService>();
 
-            services.AddTask<NewOrdersDetector>(o => o.AutoStart(bo.NewOrdersDetectorInterval));
-            services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
-            services.AddTask<MasterTxTrackerService>(o => o.AutoStart(bo.MasterTxTrackingInterval));
-            services.AddTask<OrderUpdateChecker>(o => o.AutoStart(bo.OrderUpdateCheckerInterval));
+            services.AddTask<WIPService>(o => o.AutoStart(WIPService.Interval, TimeSpan.FromSeconds(3)));
+            //services.AddTask<NewOrdersDetector>(o => o.AutoStart(bo.NewOrdersDetectorInterval));
+            //services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
+            //services.AddTask<MasterTxTrackerService>(o => o.AutoStart(bo.MasterTxTrackingInterval));
+            //services.AddTask<OrderUpdateChecker>(o => o.AutoStart(bo.OrderUpdateCheckerInterval));
             services.AddTask<SearchService>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
 
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(o =>
             {
-                o.SwaggerDoc("backend", new OpenApiInfo()
+				o.SupportNonNullableReferenceTypes();
+				o.SwaggerDoc("backend", new OpenApiInfo()
                 {
                     Title = "Backend API",
                     Description = "Backend API for SomeDAO frontend.",
@@ -77,10 +80,10 @@ namespace SomeDAO.Backend
 
             RegisteredTasks = new List<Type>
                 {
-                    typeof(ITask<NewOrdersDetector>),
-                    typeof(ITask<CollectionTxTrackerService>),
-                    typeof(ITask<MasterTxTrackerService>),
-                    typeof(ITask<OrderUpdateChecker>),
+                    //typeof(ITask<NewOrdersDetector>),
+                    //typeof(ITask<CollectionTxTrackerService>),
+                    //typeof(ITask<MasterTxTrackerService>),
+                    //typeof(ITask<OrderUpdateChecker>),
                     typeof(ITask<SearchService>),
                 }
                 .AsReadOnly();
@@ -94,7 +97,7 @@ namespace SomeDAO.Backend
             app.UseExceptionHandler(ab => ab.Run(ctx =>
             {
                 ctx.Response.ContentType = "text/plain";
-                return ctx.Response.WriteAsync($"Status Code {ctx.Response.StatusCode}");
+                return ctx.Response.WriteAsync($"Nothing here. Please enjoy StatusCode {ctx.Response.StatusCode}.");
             }));
 
             app.UseMiddleware<RobotsTxtMiddleware>();

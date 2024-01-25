@@ -1,196 +1,123 @@
-﻿using System.Globalization;
-using SomeDAO.Backend.Data;
+﻿using SomeDAO.Backend.Data;
 using TonLibDotNet;
-using TonLibDotNet.Cells;
+using TonLibDotNet.Types.Smc;
 
 namespace SomeDAO.Backend.Services
 {
-    public class DataParser
-    {
-        private readonly ITonClient tonClient;
-
-        public const string PropNameImage = "image";
-        public const string PropNameName = "name";
-        public const string PropNameDescription = "description";
-        public const string PropNameStatus = "status";
-        public const string PropNameAmount = "amount";
-        public const string PropNameTechAssignment = "technical_assignment";
-        public const string PropNameStartUnixTime = "starting_unix_time";
-        public const string PropNameEndUnixTime = "ending_unix_time";
-        public const string PropNameCreateUnixTime = "creation_unix_time";
-        public const string PropNameCategory = "category";
-        public const string PropNameCustomer = "customer_addr";
-
-        protected static readonly string PropImage = EncodePropertyName(PropNameImage);
-        protected static readonly string PropName = EncodePropertyName(PropNameName);
-        protected static readonly string PropDescription = EncodePropertyName(PropNameDescription);
-        protected static readonly string PropStatus = EncodePropertyName(PropNameStatus);
-        protected static readonly string PropAmount = EncodePropertyName(PropNameAmount);
-        protected static readonly string PropTechAssignment = EncodePropertyName(PropNameTechAssignment);
-        protected static readonly string PropStartUnixTime = EncodePropertyName(PropNameStartUnixTime);
-        protected static readonly string PropEndUnixTime = EncodePropertyName(PropNameEndUnixTime);
-        protected static readonly string PropCreateUnixTime = EncodePropertyName(PropNameCreateUnixTime);
-        protected static readonly string PropCategory = EncodePropertyName(PropNameCategory);
-        protected static readonly string PropCustomer = EncodePropertyName(PropNameCustomer);
-
-        protected static string EncodePropertyName(string name)
+    public class DataParser(ITonClient tonClient)
+	{
+		public async Task<Admin> GetAdmin(string address)
         {
-            return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.ASCII.GetBytes(name)));
-        }
+			await tonClient.InitIfNeeded().ConfigureAwait(false);
 
-        public DataParser(ITonClient tonClient)
-        {
-            this.tonClient = tonClient;
-        }
+			var smc = await tonClient.SmcLoad(address).ConfigureAwait(false);
+            var data = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_admin_data")).ConfigureAwait(false);
+            await tonClient.SmcForget(smc.Id).ConfigureAwait(false);
 
-        public async Task<Order> GetNftItem(string address)
-        {
-            await tonClient.InitIfNeeded().ConfigureAwait(false);
-
-            var state = await tonClient.RawGetAccountState(address).ConfigureAwait(false);
-
-            var data = await TonRecipes.NFTs.GetNftData(tonClient, address);
-            var content = await TonRecipes.NFTs.GetNftContent(tonClient, data.collectionAddress, data.index, data.individualContent);
-
-            var info2 = ParseNftContent(content);
-
-            var item = new Order
+            if (data.ExitCode != 0)
             {
-                Index = (long)data.index,
-                Address = address,
-                OwnerAddress = data.ownerAddress,
+                throw new NonZeroExitCodeException(data.ExitCode, address, "get_admin_data");
+            }
 
-                Image = info2.image,
-                Status = info2.status,
-                Name = info2.name,
-                Amount = info2.amount,
-                Description = info2.description,
-                Assignment = info2.assignment,
-                Category = info2.category,
-                Customer = info2.customer,
-                Created = DateTimeOffset.FromUnixTimeSeconds(info2.creation),
-                Starting = DateTimeOffset.FromUnixTimeSeconds(info2.starting),
-                Ending = DateTimeOffset.FromUnixTimeSeconds(info2.ending),
+			// Method returns:
+			// (int, int, slice, slice, int, cell) get_admin_data()
+			// (storage::init?, storage::index, storage::master_address, storage::admin_address, storage::revoked_at, storage::content)
 
-                LastTxHash = state.LastTransactionId.Hash,
-                LastTxLt = state.LastTransactionId.Lt,
-                LastUpdate = DateTimeOffset.UtcNow,
-                UpdateAfter = DateTimeOffset.MinValue,
+			var index = data.Stack[1].ToLong();
+            var adminAddress = data.Stack[3].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(true);
+            var revokedAt = data.Stack[4].ToInt();
+            var content = data.Stack[5].ToBoc();
+
+            var admin = new Admin()
+            {
+                Index = index,
+                Address = TonUtils.Address.SetBounceable(address, false),
+                AdminAddress = adminAddress,
+                RevokedAt = revokedAt == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(revokedAt),
             };
 
-            return item;
-        }
+            admin.FillFrom(content.RootCells[0]);
 
-        public static (ulong index, string collectionAddress, string? ownerAddress, string? editorAddress) ParseNftData(string base64boc)
+            return admin;
+		}
+
+		public async Task<User> GetUser(string address)
         {
-            var boc = Boc.ParseFromBase64(base64boc);
-            var cell = boc.RootCells[0].BeginRead();
+			await tonClient.InitIfNeeded().ConfigureAwait(false);
 
-            var index = cell.LoadULong();
-            var collectionAddress = cell.LoadAddressIntStd();
-            var ownerAddress = cell.TryLoadAddressIntStd();
-            var editorAddress = cell.TryLoadAddressIntStd();
+			var smc = await tonClient.SmcLoad(address).ConfigureAwait(false);
+            var data = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_user_data")).ConfigureAwait(false);
+            await tonClient.SmcForget(smc.Id).ConfigureAwait(false);
 
-            return (index, collectionAddress, ownerAddress, editorAddress);
-        }
+			if (data.ExitCode != 0)
+			{
+				throw new NonZeroExitCodeException(data.ExitCode, address, "get_user_data");
+			}
 
-        public static (
-            string image, string status, string name,
-            decimal amount, string description, string assignment,
-            long starting, long ending, long creation,
-            string category, string customer) ParseNftContent(Boc boc)
+			// Method returns:
+			// (int, int, slice, slice, int, cell) get_user_data()
+			// (storage::init?, storage::index, storage::master_address, storage::user_address, storage::revoked_at, storage::content)
+
+			var index = data.Stack[1].ToLong();
+            var userAddress = data.Stack[3].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(true);
+            var revokedAt = data.Stack[4].ToInt();
+            var content = data.Stack[5].ToBoc();
+
+            var user = new User()
+            {
+                Index = index,
+                Address = TonUtils.Address.SetBounceable(address, false),
+                UserAddress = userAddress,
+                RevokedAt = revokedAt == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(revokedAt),
+            };
+
+			user.FillFrom(content.RootCells[0]);
+
+			return user;
+		}
+
+		public async Task<Order> GetOrder(string address)
         {
-            var slice = boc.RootCells[0].BeginRead();
+			await tonClient.InitIfNeeded().ConfigureAwait(false);
 
-            var prefix = slice.LoadByte();
-            if (prefix != 0x00)
+			var smc = await tonClient.SmcLoad(address).ConfigureAwait(false);
+            var data = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_order_data")).ConfigureAwait(false);
+            await tonClient.SmcForget(smc.Id).ConfigureAwait(false);
+
+			if (data.ExitCode != 0)
+			{
+				throw new NonZeroExitCodeException(data.ExitCode, address, "get_order_data");
+			}
+
+			// Method returns:
+			// (int, int, slice, int, int, int, slice, slice, cell) get_order_data()
+			// (storage::init?, storage::index, storage::master_address,
+			//      storage::status, storage::price, storage::deadline, storage::customer_address,
+			//      storage::freelancer_address, storage::content)
+
+			var index = data.Stack[1].ToLong();
+			var status = data.Stack[3].ToInt();
+			var price = TonUtils.Coins.FromNano(data.Stack[4].ToLong());
+            var deadline = data.Stack[5].ToInt();
+            var customerAddress = data.Stack[6].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(true);
+            var freelancerAddress = data.Stack[7].ToBoc().RootCells[0].BeginRead().TryLoadAddressIntStd(true);
+            var content = data.Stack[8].ToBoc();
+
+            var order = new Order()
             {
-                return (
-                    string.Empty, string.Empty, string.Empty,
-                    default, string.Empty, string.Empty,
-                    default, default, default,
-                    string.Empty, string.Empty);
-            }
+                Index = index,
+                Address = TonUtils.Address.SetBounceable(address, false),
+                Status = status,
+                CustomerAddress = customerAddress,
+                FreelancerAddress = freelancerAddress,
+            };
 
-            var dic = slice.TryLoadAndParseDict(256, x => Convert.ToHexString(x.LoadBytes(32)), x => x);
+			order.FillFrom(content.RootCells[0]);
 
-            var image = string.Empty;
-            var status = string.Empty;
-            var name = string.Empty;
-            var amount = 0M;
-            var description = string.Empty;
-            var assignment = string.Empty;
-            var start = 0L;
-            var end = 0L;
-            var created = 0L;
-            var category = string.Empty;
-            var customer = string.Empty;
+			order.Price = price;
+            order.Deadline = DateTimeOffset.FromUnixTimeSeconds(deadline);
 
-            Slice? s = null;
-
-            if (dic != null)
-            {
-                if (dic.TryGetValue(PropImage, out s))
-                {
-                    image = s.LoadStringSnake() ?? string.Empty;
-                }
-
-                if (dic.TryGetValue(PropStatus, out s))
-                {
-                    status = s.LoadStringSnake() ?? string.Empty;
-                }
-
-                if (dic.TryGetValue(PropName, out s))
-                {
-                    name = s.LoadStringSnake() ?? string.Empty;
-                }
-
-                if (dic.TryGetValue(PropAmount, out s))
-                {
-                    amount = decimal.Parse(s.LoadStringSnake() ?? "0", CultureInfo.InvariantCulture);
-                }
-
-                if (dic.TryGetValue(PropDescription, out s))
-                {
-                    description = s.LoadStringSnake() ?? string.Empty;
-                }
-
-                if (dic.TryGetValue(PropTechAssignment, out s))
-                {
-                    assignment = s.LoadStringSnake() ?? string.Empty;
-                }
-
-                if (dic.TryGetValue(PropStartUnixTime, out s))
-                {
-                    start = long.Parse(s.LoadStringSnake() ?? "0", CultureInfo.InvariantCulture);
-                }
-
-                if (dic.TryGetValue(PropEndUnixTime, out s))
-                {
-                    end = long.Parse(s.LoadStringSnake() ?? "0", CultureInfo.InvariantCulture);
-                }
-
-                if (dic.TryGetValue(PropCreateUnixTime, out s))
-                {
-                    created = long.Parse(s.LoadStringSnake() ?? "0", CultureInfo.InvariantCulture);
-                }
-
-                if (dic.TryGetValue(PropCategory, out s))
-                {
-                    category = s.LoadStringSnake() ?? string.Empty;
-                }
-
-                if (dic.TryGetValue(PropCustomer, out s))
-                {
-                    customer = s.LoadStringSnake() ?? string.Empty;
-                }
-            }
-
-            return (
-                image, status, name,
-                amount, description, assignment,
-                start, end, created,
-                category, customer);
-        }
-    }
+            return order;
+		}
+	}
 }

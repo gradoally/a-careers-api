@@ -39,15 +39,16 @@ namespace SomeDAO.Backend.Api
         }
 
 		/// <summary>
-		/// Returns top
+		/// Returns Orders that meet filter.
 		/// </summary>
 		/// <param name="query">Free query</param>
 		/// <param name="category">Show only specified category.</param>
 		/// <param name="language">Show only specified language.</param>
-		/// <param name="minPrice"></param>
+		/// <param name="minPrice">Minimum price to include</param>
 		/// <param name="orderBy">Sort field: 'createdAt' or 'deadline'.</param>
 		/// <param name="sort">Sort order: 'asc' or 'desc'.</param>
-		/// <returns></returns>
+		/// <param name="page">Page number to return (default 0).</param>
+		/// <param name="pageSize">Page size (default 10, max 100).</param>
 		[SwaggerResponse(400, "Invalid request.")]
 		[HttpGet]
 		public ActionResult<List<Order>> Search(
@@ -56,7 +57,9 @@ namespace SomeDAO.Backend.Api
 			string? language,
 			decimal? minPrice,
 			string orderBy = "createdAt",
-			string sort = "asc")
+			string sort = "asc",
+			int page = 0,
+			int pageSize = 10)
 		{
 
 			var orderByMode = orderBy.ToLowerInvariant() switch
@@ -83,6 +86,16 @@ namespace SomeDAO.Backend.Api
 				ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
 			}
 
+			if (page < 0)
+			{
+				ModelState.AddModelError(nameof(page), "Must be non-negative.");
+			}
+
+			if (pageSize < 1 || pageSize > 100)
+			{
+				ModelState.AddModelError(nameof(pageSize), "Must be between 1 and 100.");
+			}
+
 			if (!ModelState.IsValid)
 			{
 				return ValidationProblem();
@@ -90,18 +103,34 @@ namespace SomeDAO.Backend.Api
 
 			var list = searchService.FindOrders(query, category, language, minPrice);
 
-			if (list.Count > 1)
+			var ordered = (orderByMode, sortMode) switch
 			{
-				list = (orderByMode, sortMode) switch
-				{
-					(1, 1) => list.OrderBy(x => x.CreatedAt).ToList(),
-					(1, _) => list.OrderBy(x => x.Deadline).ToList(),
-					(_, 1) => list.OrderByDescending(x => x.CreatedAt).ToList(),
-					(_, _) => list.OrderByDescending(x => x.Deadline).ToList(),
-				};
-			}
+				(1, 1) => list.OrderBy(x => x.CreatedAt),
+				(1, _) => list.OrderBy(x => x.Deadline),
+				(_, 1) => list.OrderByDescending(x => x.CreatedAt),
+				(_, _) => list.OrderByDescending(x => x.Deadline),
+			};
 
-			return list;
+			return ordered.Skip(page * pageSize).Take(pageSize).ToList();
+		}
+
+		/// <summary>
+		/// Returns number of Orders that meet filter.
+		/// </summary>
+		/// <param name="query">Free query</param>
+		/// <param name="category">Show only specified category.</param>
+		/// <param name="language">Show only specified language.</param>
+		/// <param name="minPrice">Minimum price to include</param>
+		[HttpGet]
+		public ActionResult<int> SearchCount(
+			string? query,
+			string? category,
+			string? language,
+			decimal? minPrice)
+		{
+			var list = searchService.FindOrders(query, category, language, minPrice);
+
+			return list.Count();
 		}
 
 		/// <summary>

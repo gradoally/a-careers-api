@@ -40,7 +40,7 @@ namespace SomeDAO.Backend.Services
             AllOrders = orders;
         }
 
-		public List<Order> FindOrders(string? query, string? category, string? language, decimal? minPrice)
+		public IQueryable<Order> FindOrders(string? query, string? category, string? language, decimal? minPrice)
 		{
 			var found = AllOrders.AsQueryable();
 
@@ -65,7 +65,7 @@ namespace SomeDAO.Backend.Services
 				found = found.Where(x => Array.TrueForAll(words, z => x.TextToSearch.Contains(z, StringComparison.InvariantCulture)));
 			}
 
-			return found.ToList();
+			return found;
 		}
 	}
 }

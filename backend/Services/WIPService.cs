@@ -14,7 +14,7 @@ namespace SomeDAO.Backend.Services
 		private readonly DataParser dataParser;
 		private readonly ITask task;
 
-		public WIPService(ILogger<WIPService> logger, ITonClient tonClient, IDbProvider dbProvider, DataParser dataParser, ITask<SearchService> task)
+		public WIPService(ILogger<WIPService> logger, ITonClient tonClient, IDbProvider dbProvider, DataParser dataParser, ITask<CachedData> task)
 		{
 			this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			this.tonClient = tonClient ?? throw new ArgumentNullException(nameof(tonClient));

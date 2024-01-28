@@ -15,10 +15,10 @@ namespace SomeDAO.Backend.Api
     public class SearchController : ControllerBase
     {
         private readonly ILogger logger;
-		private readonly SearchService searchService;
+		private readonly CachedData searchService;
 		private readonly BackendConfig backendConfig;
 
-        public SearchController(ILogger<SearchController> logger, SearchService searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions)
+        public SearchController(ILogger<SearchController> logger, CachedData searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
@@ -39,7 +39,7 @@ namespace SomeDAO.Backend.Api
         }
 
 		/// <summary>
-		/// Returns Orders that meet filter.
+		/// Returns list of ACTIVE (available to work at) Orders that meet filter.
 		/// </summary>
 		/// <param name="query">Free query</param>
 		/// <param name="category">Show only specified category.</param>
@@ -101,7 +101,7 @@ namespace SomeDAO.Backend.Api
 				return ValidationProblem();
 			}
 
-			var list = searchService.FindOrders(query, category, language, minPrice);
+			var list = SearchActiveOrders(query, category, language, minPrice);
 
 			var ordered = (orderByMode, sortMode) switch
 			{
@@ -115,7 +115,7 @@ namespace SomeDAO.Backend.Api
 		}
 
 		/// <summary>
-		/// Returns number of Orders that meet filter.
+		/// Returns number of ACTIVE (available to work at) Orders that meet filter.
 		/// </summary>
 		/// <param name="query">Free query</param>
 		/// <param name="category">Show only specified category.</param>
@@ -128,7 +128,7 @@ namespace SomeDAO.Backend.Api
 			string? language,
 			decimal? minPrice)
 		{
-			var list = searchService.FindOrders(query, category, language, minPrice);
+			var list = SearchActiveOrders(query, category, language, minPrice);
 
 			return list.Count();
 		}
@@ -220,8 +220,8 @@ namespace SomeDAO.Backend.Api
 
 			var res = new UserStat()
 			{
-				AsCustomerByStatus = asCustomer.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count()),
-				AsFreelancerByStatus = asFreelancer.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count()),
+				AsCustomerByStatus = asCustomer.GroupBy(x => x.Status).ToDictionary(x => (int)x.Key, x => x.Count()),
+				AsFreelancerByStatus = asFreelancer.GroupBy(x => x.Status).ToDictionary(x => (int)x.Key, x => x.Count()),
 			};
 
 			res.AsCustomerTotal = res.AsCustomerByStatus.Sum(x => x.Value);
@@ -270,7 +270,39 @@ namespace SomeDAO.Backend.Api
 				? searchService.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress))
 				: searchService.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
 
-			var list = query.Where(x => x.Status == status).ToList();
+			var list = query.Where(x => x.Status == (OrderStatus)status).ToList();
+
+			return list;
+		}
+
+		protected IEnumerable<Order> SearchActiveOrders(
+			string? query,
+			string? category,
+			string? language,
+			decimal? minPrice)
+		{
+			var list = searchService.AllOrders.Where(x => x.Status == OrderStatus.Active);
+
+			if (!string.IsNullOrWhiteSpace(category))
+			{
+				list = list.Where(x => string.Equals(x.Category, category, StringComparison.InvariantCultureIgnoreCase));
+			}
+
+			if (!string.IsNullOrWhiteSpace(language))
+			{
+				list = list.Where(x => string.Equals(x.Language, language, StringComparison.InvariantCultureIgnoreCase));
+			}
+
+			if (minPrice != null)
+			{
+				list = list.Where(x => x.Price >= minPrice);
+			}
+
+			if (!string.IsNullOrWhiteSpace(query))
+			{
+				var words = query.ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+				list = list.Where(x => Array.TrueForAll(words, z => x.TextToSearch.Contains(z, StringComparison.InvariantCulture)));
+			}
 
 			return list;
 		}

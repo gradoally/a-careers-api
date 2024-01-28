@@ -120,7 +120,7 @@ namespace SomeDAO.Backend.Services
 			{
 				Index = index,
 				Address = TonUtils.Address.SetBounceable(address, true),
-				Status = status,
+				Status = (OrderStatus)status,
 				CustomerAddress = customerAddress,
 				FreelancerAddress = freelancerAddress,
 				CreatedAt = DateTimeOffset.UtcNow.Truncate(TimeSpan.FromSeconds(1)),

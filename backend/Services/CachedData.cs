@@ -4,7 +4,7 @@ using SomeDAO.Backend.Data;
 
 namespace SomeDAO.Backend.Services
 {
-    public class SearchService : IRunnable
+    public class CachedData : IRunnable
     {
         public const string OrderAsc = "asc";
         public const string OrderDesc = "desc";
@@ -12,7 +12,7 @@ namespace SomeDAO.Backend.Services
         private readonly ILogger logger;
         private readonly BackendOptions options;
 
-		public SearchService(ILogger<SearchService> logger, IOptions<BackendOptions> options)
+		public CachedData(ILogger<CachedData> logger, IOptions<BackendOptions> options)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
@@ -35,37 +35,17 @@ namespace SomeDAO.Backend.Services
             var orders = await db.MainDb.Table<Order>().ToListAsync().ConfigureAwait(false);
             logger.LogDebug("Loaded {Count} orders", orders.Count);
 
-            AllAdmins = admins;
+			foreach(var order in orders)
+			{
+				order.Customer = users.Find(x => x.UserAddress == order.CustomerAddress);
+				order.Freelancer = users.Find(x => x.UserAddress == order.FreelancerAddress);
+			}
+
+			logger.LogDebug("Users applied to Orders");
+
+			AllAdmins = admins;
             AllUsers = users;
             AllOrders = orders;
         }
-
-		public IQueryable<Order> FindOrders(string? query, string? category, string? language, decimal? minPrice)
-		{
-			var found = AllOrders.AsQueryable();
-
-			if (!string.IsNullOrWhiteSpace(category))
-			{
-				found = found.Where(x => string.Equals(x.Category, category, StringComparison.InvariantCultureIgnoreCase));
-			}
-
-			if (!string.IsNullOrWhiteSpace(language))
-			{
-				found = found.Where(x => string.Equals(x.Language, language, StringComparison.InvariantCultureIgnoreCase));
-			}
-
-			if (minPrice != null)
-			{
-				found = found.Where(x => x.Price >= minPrice);
-			}
-
-			if (!string.IsNullOrWhiteSpace(query))
-			{
-				var words = query.ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-				found = found.Where(x => Array.TrueForAll(words, z => x.TextToSearch.Contains(z, StringComparison.InvariantCulture)));
-			}
-
-			return found;
-		}
 	}
 }

@@ -43,14 +43,14 @@ namespace SomeDAO.Backend
 
             services.AddSingleton<IDbProvider, DbProvider>();
             services.AddSingleton<DataParser>();
-            services.AddSingleton<SearchService>();
+            services.AddSingleton<CachedData>();
 
             services.AddTask<WIPService>(o => o.AutoStart(WIPService.Interval, TimeSpan.FromSeconds(3)));
             //services.AddTask<NewOrdersDetector>(o => o.AutoStart(bo.NewOrdersDetectorInterval));
             //services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
             //services.AddTask<MasterTxTrackerService>(o => o.AutoStart(bo.MasterTxTrackingInterval));
             //services.AddTask<OrderUpdateChecker>(o => o.AutoStart(bo.OrderUpdateCheckerInterval));
-            services.AddTask<SearchService>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
+            services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
 
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
@@ -84,7 +84,7 @@ namespace SomeDAO.Backend
                     //typeof(ITask<CollectionTxTrackerService>),
                     //typeof(ITask<MasterTxTrackerService>),
                     //typeof(ITask<OrderUpdateChecker>),
-                    typeof(ITask<SearchService>),
+                    typeof(ITask<CachedData>),
                 }
                 .AsReadOnly();
         }

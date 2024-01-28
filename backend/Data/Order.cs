@@ -15,7 +15,7 @@ namespace SomeDAO.Backend.Data
 		public string Address { get; set; } = string.Empty;
 
         [Indexed]
-        public int Status { get; set; }
+        public OrderStatus Status { get; set; }
 
 		/// <summary>
 		/// User wallet address - in non-bounceable form.
@@ -23,11 +23,17 @@ namespace SomeDAO.Backend.Data
 		[NotNull, Indexed]
 		public string CustomerAddress { get; set; } = string.Empty;
 
+		[Ignore]
+		public User? Customer { get; set; }
+
 		/// <summary>
 		/// User wallet address - in non-bounceable form.
 		/// </summary>
 		[Indexed]
 		public string? FreelancerAddress { get; set; }
+
+		[Ignore]
+		public User? Freelancer { get; set; }
 
 		public DateTimeOffset CreatedAt { get; set; }
 

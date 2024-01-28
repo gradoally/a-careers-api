@@ -138,9 +138,8 @@ namespace SomeDAO.Backend.Api
 		/// </summary>
 		/// <param name="address">Address of user's main wallet (in user-friendly form).</param>
 		[SwaggerResponse(400, "Address is empty or invalid.")]
-		[SwaggerResponse(404, "User not found.")]
 		[HttpGet]
-        public ActionResult<User> FindUser(string address)
+        public ActionResult<FindResult<User>> FindUser(string address)
         {
             if (string.IsNullOrEmpty(address))
             {
@@ -158,20 +157,14 @@ namespace SomeDAO.Backend.Api
 			}
 
 			var user = searchService.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, address));
-
-			if (user == null)
-            {
-				return NotFound("User not found");
-			}
-
-			return user;
+			return new FindResult<User>(user);
         }
 
 		/// <summary>
 		/// Get user by index.
 		/// </summary>
 		/// <param name="index">ID of user ('index' field from user contract).</param>
-		[SwaggerResponse(404, "User not found.")]
+		[SwaggerResponse(400, "Index is invalid (or user does not exist).")]
 		[HttpGet]
 		public ActionResult<User> GetUser(long index)
 		{
@@ -179,7 +172,8 @@ namespace SomeDAO.Backend.Api
 
 			if (user == null)
 			{
-				return NotFound("User not found");
+				ModelState.AddModelError(nameof(index), "Invalid index (or user does not exist).");
+				return ValidationProblem();
 			}
 
 			return user;
@@ -189,7 +183,7 @@ namespace SomeDAO.Backend.Api
 		/// Get order by index.
 		/// </summary>
 		/// <param name="index">ID of order ('index' field from order contract).</param>
-		[SwaggerResponse(404, "Order not found.")]
+		[SwaggerResponse(400, "Index is invalid (or order does not exist).")]
 		[HttpGet]
 		public ActionResult<Order> GetOrder(long index)
 		{
@@ -197,7 +191,8 @@ namespace SomeDAO.Backend.Api
 
 			if (order == null)
 			{
-				return NotFound("Order not found");
+				ModelState.AddModelError(nameof(index), "Invalid index (or order does not exist).");
+				return ValidationProblem();
 			}
 
 			return order;
@@ -208,7 +203,7 @@ namespace SomeDAO.Backend.Api
 		/// </summary>
 		/// <param name="index">ID of user ('index' field from user contract).</param>
 		/// <remarks>Only statuses with non-zero number of orders are returned.</remarks>
-		[SwaggerResponse(404, "User not found.")]
+		[SwaggerResponse(400, "Index is invalid (or user does not exist).")]
 		[HttpGet]
 		public ActionResult<UserStat> GetUserStats(long index)
 		{
@@ -216,7 +211,8 @@ namespace SomeDAO.Backend.Api
 
 			if (user == null)
 			{
-				return NotFound("User not found");
+				ModelState.AddModelError(nameof(index), "Invalid index (or user does not exist).");
+				return ValidationProblem();
 			}
 
 			var asCustomer = searchService.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress));
@@ -241,8 +237,7 @@ namespace SomeDAO.Backend.Api
 		/// <param name="role">Role of user: 'customer' or 'freelancer'.</param>
 		/// <param name="status">Status of orders to return.</param>
 		/// <remarks>Only statuses with non-zero number of orders are returned.</remarks>
-		[SwaggerResponse(400, "Invalid 'role' value.")]
-		[SwaggerResponse(404, "User not found.")]
+		[SwaggerResponse(400, "Invalid (nonexisting) 'index' or 'role' value.")]
 		[HttpGet]
 		public ActionResult<List<Order>> GetUserOrders(long index, string role, int status)
 		{
@@ -267,7 +262,8 @@ namespace SomeDAO.Backend.Api
 
 			if (user == null)
 			{
-				return NotFound("User not found");
+				ModelState.AddModelError(nameof(index), "Invalid index (or user does not exist).");
+				return ValidationProblem();
 			}
 
 			var query = mode == 1
@@ -295,6 +291,20 @@ namespace SomeDAO.Backend.Api
 			public int AsFreelancerTotal { get; set; }
 
 			public Dictionary<int, int> AsFreelancerByStatus { get; set; } = new();
+		}
+
+		public class FindResult<T>
+			where T : class
+		{
+			public FindResult(T? data)
+			{
+				Found = data != null;
+				Data = data;
+			}
+
+			public bool Found { get; set; }
+
+			public T? Data { get; set; }
 		}
 	}
 }

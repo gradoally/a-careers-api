@@ -1,11 +1,184 @@
 ﻿using SomeDAO.Backend.Data;
 using TonLibDotNet;
+using TonLibDotNet.Cells;
 using TonLibDotNet.Types.Smc;
 
 namespace SomeDAO.Backend.Services
 {
 	public class DataParser(ITonClient tonClient)
 	{
+		private static readonly string PropCategory = GetSHA256OfStringAsHex("category");
+		private static readonly string PropCanApproveUser = GetSHA256OfStringAsHex("can_approve_user");
+		private static readonly string PropCanRevokeUser = GetSHA256OfStringAsHex("can_revoke_user");
+		private static readonly string PropNickname = GetSHA256OfStringAsHex("nickname");
+		private static readonly string PropAbout = GetSHA256OfStringAsHex("about");
+		private static readonly string PropWebsite = GetSHA256OfStringAsHex("website");
+		private static readonly string PropPortfolio = GetSHA256OfStringAsHex("portfolio");
+		private static readonly string PropResume = GetSHA256OfStringAsHex("resume");
+		private static readonly string PropSpecialization = GetSHA256OfStringAsHex("specialization");
+		private static readonly string PropIsUser = GetSHA256OfStringAsHex("is_user");
+		private static readonly string PropIsFreelancer = GetSHA256OfStringAsHex("is_freelancer");
+		private static readonly string PropTelegram = GetSHA256OfStringAsHex("telegram");
+		private static readonly string PropName = GetSHA256OfStringAsHex("name");
+		private static readonly string PropDescription = GetSHA256OfStringAsHex("description");
+		private static readonly string PropPrice = GetSHA256OfStringAsHex("price");
+		private static readonly string PropDeadline = GetSHA256OfStringAsHex("deadline");
+		private static readonly string PropTechnicalTask = GetSHA256OfStringAsHex("technical_task");
+		private static readonly string PropLanguage = GetSHA256OfStringAsHex("language");
+
+		public static void FillAdminContent(IAdminContent value, Cell fromDict)
+		{
+			var dict = fromDict.ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)), x => x, StringComparer.Ordinal);
+			if (dict == null)
+			{
+				return;
+			}
+
+			if (dict.TryGetValue(PropCategory, out var s))
+			{
+				value.Category = "0x" + Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
+			}
+
+			if (dict.TryGetValue(PropCanApproveUser, out s))
+			{
+				value.CanApproveUser = s.LoadBit();
+			}
+
+			if (dict.TryGetValue(PropCanRevokeUser, out s))
+			{
+				value.CanRevokeUser = s.LoadBit();
+			}
+
+			if (dict.TryGetValue(PropNickname, out s))
+			{
+				value.Nickname = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropAbout, out s))
+			{
+				value.About = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropWebsite, out s))
+			{
+				value.Website = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropPortfolio, out s))
+			{
+				value.Portfolio = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropResume, out s))
+			{
+				value.Resume = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropSpecialization, out s))
+			{
+				value.Specialization = s.LoadStringSnake(true) ?? string.Empty;
+			}
+		}
+
+		public static void FillUserContent(IUserContent value, Cell fromDict)
+		{
+			var dict = fromDict.ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)), x => x, StringComparer.Ordinal);
+			if (dict == null)
+			{
+				return;
+			}
+
+			if (dict.TryGetValue(PropIsUser, out var s))
+			{
+				value.IsUser = s.LoadBit();
+			}
+
+			if (dict.TryGetValue(PropIsFreelancer, out s))
+			{
+				value.IsFreelancer = s.LoadBit();
+			}
+
+			if (dict.TryGetValue(PropNickname, out s))
+			{
+				value.Nickname = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropTelegram, out s))
+			{
+				value.Telegram = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropAbout, out s))
+			{
+				value.About = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropWebsite, out s))
+			{
+				value.Website = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropPortfolio, out s))
+			{
+				value.Portfolio = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropResume, out s))
+			{
+				value.Resume = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropSpecialization, out s))
+			{
+				value.Specialization = s.LoadStringSnake(true) ?? string.Empty;
+			}
+		}
+
+		public static void FillOrderContent(IOrderContent value, Cell fromDict)
+		{
+			var dict = fromDict.ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)), x => x, StringComparer.Ordinal);
+			if (dict == null)
+			{
+				return;
+			}
+
+			if (dict.TryGetValue(PropCategory, out var s))
+			{
+				value.Category = "0x" + Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
+			}
+
+			if (dict.TryGetValue(PropLanguage, out s))
+			{
+				value.Language = "0x" + Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
+			}
+
+			if (dict.TryGetValue(PropName, out s))
+			{
+				value.Name = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropPrice, out s))
+			{
+				value.Price = TonUtils.Coins.FromNano(s.LoadCoins());
+			}
+
+			if (dict.TryGetValue(PropDeadline, out s))
+			{
+				var d = s.LoadUInt(32);
+				value.Deadline = DateTimeOffset.FromUnixTimeSeconds(d);
+			}
+
+			if (dict.TryGetValue(PropDescription, out s))
+			{
+				value.Description = s.LoadStringSnake(true) ?? string.Empty;
+			}
+
+			if (dict.TryGetValue(PropTechnicalTask, out s))
+			{
+				value.TechnicalTask = s.LoadStringSnake(true) ?? string.Empty;
+			}
+		}
+
 		public async Task<Admin> GetAdmin(string address)
 		{
 			await tonClient.InitIfNeeded().ConfigureAwait(false);
@@ -36,7 +209,7 @@ namespace SomeDAO.Backend.Services
 				RevokedAt = revokedAt == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(revokedAt),
 			};
 
-			admin.FillFrom(content.RootCells[0]);
+			FillAdminContent(admin, content.RootCells[0]);
 
 			return admin;
 		}
@@ -71,7 +244,7 @@ namespace SomeDAO.Backend.Services
 				RevokedAt = revokedAt == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(revokedAt),
 			};
 
-			user.FillFrom(content.RootCells[0]);
+			FillUserContent(user, content.RootCells[0]);
 
 			return user;
 		}
@@ -127,12 +300,17 @@ namespace SomeDAO.Backend.Services
 				ResponsesCount = responsesCount,
 			};
 
-			order.FillFrom(content.RootCells[0]);
+			FillOrderContent(order, content.RootCells[0]);
 
 			order.Price = price;
 			order.Deadline = DateTimeOffset.FromUnixTimeSeconds(deadline);
 
 			return order;
+		}
+
+		private static string GetSHA256OfStringAsHex(string value)
+		{
+			return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
 		}
 	}
 }

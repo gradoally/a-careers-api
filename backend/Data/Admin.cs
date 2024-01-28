@@ -2,7 +2,7 @@
 
 namespace SomeDAO.Backend.Data
 {
-	public class Admin : AdminContent
+	public class Admin : IAdminContent
 	{
 		[PrimaryKey]
 		public long Index { get; set; }
@@ -20,5 +20,27 @@ namespace SomeDAO.Backend.Data
 		public string AdminAddress { get; set; } = string.Empty;
 
 		public DateTimeOffset? RevokedAt { get; set; }
+
+		#region IAdminContent
+
+		public string? Category { get; set; }
+
+		public bool CanApproveUser { get; set; }
+
+		public bool CanRevokeUser { get; set; }
+
+		public string? Nickname { get; set; }
+
+		public string? About { get; set; }
+
+		public string? Website { get; set; }
+
+		public string? Portfolio { get; set; }
+
+		public string? Resume { get; set; }
+
+		public string? Specialization { get; set; }
+
+		#endregion
 	}
 }

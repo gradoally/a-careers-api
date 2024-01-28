@@ -3,7 +3,7 @@ using SQLite;
 
 namespace SomeDAO.Backend.Data
 {
-    public class Order : OrderContent
+    public class Order : IOrderContent
     {
 		[PrimaryKey]
 		public long Index { get; set; }
@@ -38,6 +38,24 @@ namespace SomeDAO.Backend.Data
 		public DateTimeOffset CreatedAt { get; set; }
 
 		public int ResponsesCount { get; set; }
+
+		#region IOrderContent
+
+		public string? Category { get; set; }
+
+		public string? Language { get; set; }
+
+		public string? Name { get; set; }
+
+		public decimal Price { get; set; }
+
+		public DateTimeOffset Deadline { get; set; }
+
+		public string? Description { get; set; }
+
+		public string? TechnicalTask { get; set; }
+
+		#endregion
 
 		[JsonIgnore]
 		private string? textToSearch = null;

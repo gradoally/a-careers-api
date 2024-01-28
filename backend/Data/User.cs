@@ -2,7 +2,7 @@
 
 namespace SomeDAO.Backend.Data
 {
-	public class User : UserContent
+	public class User : IUserContent
 	{
 		[PrimaryKey]
 		public long Index { get; set; }
@@ -20,5 +20,27 @@ namespace SomeDAO.Backend.Data
 		public string UserAddress { get; set; } = string.Empty;
 
 		public DateTimeOffset? RevokedAt { get; set; }
+
+		#region IUserContent
+
+		public bool IsUser { get; set; }
+
+		public bool IsFreelancer { get; set; }
+
+		public string? Nickname { get; set; }
+
+		public string? Telegram { get; set; }
+
+		public string? About { get; set; }
+
+		public string? Website { get; set; }
+
+		public string? Portfolio { get; set; }
+
+		public string? Resume { get; set; }
+
+		public string? Specialization { get; set; }
+
+		#endregion
 	}
 }

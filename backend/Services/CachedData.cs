@@ -21,6 +21,7 @@ namespace SomeDAO.Backend.Services
 		public List<Admin> AllAdmins { get; private set; } = new();
 		public List<User> AllUsers { get; private set; } = new();
 		public List<Order> AllOrders { get; private set; } = new();
+		public List<Order> AllActiveOrders { get; private set; } = new();
 
 		public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
@@ -33,7 +34,8 @@ namespace SomeDAO.Backend.Services
             logger.LogDebug("Loaded {Count} users", users.Count);
 
             var orders = await db.MainDb.Table<Order>().ToListAsync().ConfigureAwait(false);
-            logger.LogDebug("Loaded {Count} orders", orders.Count);
+            var activeOrders = orders.Where(x => x.Status == OrderStatus.Active).ToList();
+            logger.LogDebug("Loaded {Count} orders (including {Count} active)", orders.Count, activeOrders.Count);
 
 			foreach(var order in orders)
 			{
@@ -46,6 +48,7 @@ namespace SomeDAO.Backend.Services
 			AllAdmins = admins;
             AllUsers = users;
             AllOrders = orders;
+            AllActiveOrders = activeOrders;
         }
 	}
 }

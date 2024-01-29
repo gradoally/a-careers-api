@@ -281,7 +281,7 @@ namespace SomeDAO.Backend.Api
 			string? language,
 			decimal? minPrice)
 		{
-			var list = searchService.AllOrders.Where(x => x.Status == OrderStatus.Active);
+			var list = searchService.AllActiveOrders.AsEnumerable();
 
 			if (!string.IsNullOrWhiteSpace(category))
 			{

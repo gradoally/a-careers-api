@@ -23,13 +23,13 @@ namespace SomeDAO.Backend.Services
 
 		public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
 		{
-			var count = 0;
+			var c1 = await ForceResyncAdmins();
+			var c2 = await ForceResyncUsers();
+			var c3 = await ForceResyncOrders();
 
-			count += await ForceResyncAdmins();
-			count += await ForceResyncUsers();
-			count += await ForceResyncOrders();
+			logger.LogDebug("Scheduled {Count} Admins, {Count} Users, {Count} Orders for resync", c1, c2, c3);
 
-			if (count > 0)
+			if (c1 != 0 || c2 != 0 || c3 != 0)
 			{
 				syncTask.TryRunImmediately();
 			}
@@ -46,8 +46,6 @@ namespace SomeDAO.Backend.Services
 				await dbProvider.MainDb.InsertAllAsync(queue).ConfigureAwait(false);
 			}
 
-			logger.LogDebug("Scheduled {Count} Admins for resync", list.Count);
-
 			return list.Count;
 		}
 
@@ -62,8 +60,6 @@ namespace SomeDAO.Backend.Services
 				await dbProvider.MainDb.InsertAllAsync(queue).ConfigureAwait(false);
 			}
 
-			logger.LogDebug("Scheduled {Count} Users for resync", list.Count);
-
 			return list.Count;
 		}
 
@@ -77,8 +73,6 @@ namespace SomeDAO.Backend.Services
 				var queue = list.Select(x => new SyncQueueItem(x)).ToList();
 				await dbProvider.MainDb.InsertAllAsync(queue).ConfigureAwait(false);
 			}
-
-			logger.LogDebug("Scheduled {Count} Orders for resync", list.Count);
 
 			return list.Count;
 		}

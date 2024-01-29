@@ -179,17 +179,29 @@ namespace SomeDAO.Backend.Services
 			}
 		}
 
-		public async Task<Admin> GetAdmin(string address)
+		public async Task<bool> UpdateAdmin(Admin value)
 		{
 			await tonClient.InitIfNeeded().ConfigureAwait(false);
 
-			var smc = await tonClient.SmcLoad(address).ConfigureAwait(false);
+			var state = await tonClient.RawGetAccountState(value.Address).ConfigureAwait(false);
+
+			value.LastSync = state.SyncUtime;
+
+			if (state.LastTransactionId.Lt == value.LastTxLt && state.LastTransactionId.Hash == value.LastTxHash)
+			{
+				return false;
+			}
+
+			value.LastTxLt = state.LastTransactionId.Lt;
+			value.LastTxHash = state.LastTransactionId.Hash;
+
+			var smc = await tonClient.SmcLoad(value.Address).ConfigureAwait(false);
 			var data = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_admin_data")).ConfigureAwait(false);
 			await tonClient.SmcForget(smc.Id).ConfigureAwait(false);
 
 			if (data.ExitCode != 0)
 			{
-				throw new NonZeroExitCodeException(data.ExitCode, address, "get_admin_data");
+				throw new NonZeroExitCodeException(data.ExitCode, value.Address, "get_admin_data");
 			}
 
 			// Method returns:
@@ -197,34 +209,46 @@ namespace SomeDAO.Backend.Services
 			// (storage::init?, storage::index, storage::master_address, storage::admin_address, storage::revoked_at, storage::content)
 
 			var index = data.Stack[1].ToLong();
+			if (index != value.Index)
+			{
+				throw new ApplicationException($"Admin index mismatch: {index} got, {value.Index} expected for {value.Address}.");
+			}
+
 			var adminAddress = data.Stack[3].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(false);
 			var revokedAt = data.Stack[4].ToInt();
 			var content = data.Stack[5].ToBoc();
 
-			var admin = new Admin()
-			{
-				Index = index,
-				Address = TonUtils.Address.SetBounceable(address, true),
-				AdminAddress = adminAddress,
-				RevokedAt = revokedAt == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(revokedAt),
-			};
+			value.AdminAddress = adminAddress;
+			value.RevokedAt = revokedAt == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(revokedAt);
 
-			FillAdminContent(admin, content.RootCells[0]);
+			FillAdminContent(value, content.RootCells[0]);
 
-			return admin;
+			return true;
 		}
 
-		public async Task<User> GetUser(string address)
+		public async Task<bool> UpdateUser(User value)
 		{
 			await tonClient.InitIfNeeded().ConfigureAwait(false);
 
-			var smc = await tonClient.SmcLoad(address).ConfigureAwait(false);
+			var state = await tonClient.RawGetAccountState(value.Address).ConfigureAwait(false);
+
+			value.LastSync = state.SyncUtime;
+
+			if (state.LastTransactionId.Lt == value.LastTxLt && state.LastTransactionId.Hash == value.LastTxHash)
+			{
+				return false;
+			}
+
+			value.LastTxLt = state.LastTransactionId.Lt;
+			value.LastTxHash = state.LastTransactionId.Hash;
+
+			var smc = await tonClient.SmcLoad(value.Address).ConfigureAwait(false);
 			var data = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_user_data")).ConfigureAwait(false);
 			await tonClient.SmcForget(smc.Id).ConfigureAwait(false);
 
 			if (data.ExitCode != 0)
 			{
-				throw new NonZeroExitCodeException(data.ExitCode, address, "get_user_data");
+				throw new NonZeroExitCodeException(data.ExitCode, value.Address, "get_user_data");
 			}
 
 			// Method returns:
@@ -232,39 +256,51 @@ namespace SomeDAO.Backend.Services
 			// (storage::init?, storage::index, storage::master_address, storage::user_address, storage::revoked_at, storage::content)
 
 			var index = data.Stack[1].ToLong();
+			if (index != value.Index)
+			{
+				throw new ApplicationException($"User index mismatch: {index} got, {value.Index} expected for {value.Address}.");
+			}
+
 			var userAddress = data.Stack[3].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(false);
 			var revokedAt = data.Stack[4].ToInt();
 			var content = data.Stack[5].ToBoc();
 
-			var user = new User()
-			{
-				Index = index,
-				Address = TonUtils.Address.SetBounceable(address, true),
-				UserAddress = userAddress,
-				RevokedAt = revokedAt == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(revokedAt),
-			};
+			value.UserAddress = userAddress;
+			value.RevokedAt = revokedAt == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(revokedAt);
 
-			FillUserContent(user, content.RootCells[0]);
+			FillUserContent(value, content.RootCells[0]);
 
-			return user;
+			return true;
 		}
 
-		public async Task<Order> GetOrder(string address)
+		public async Task<bool> UpdateOrder(Order value)
 		{
 			await tonClient.InitIfNeeded().ConfigureAwait(false);
 
-			var smc = await tonClient.SmcLoad(address).ConfigureAwait(false);
+			var state = await tonClient.RawGetAccountState(value.Address).ConfigureAwait(false);
+
+			value.LastSync = state.SyncUtime;
+
+			if (state.LastTransactionId.Lt == value.LastTxLt && state.LastTransactionId.Hash == value.LastTxHash)
+			{
+				return false;
+			}
+
+			value.LastTxLt = state.LastTransactionId.Lt;
+			value.LastTxHash = state.LastTransactionId.Hash;
+
+			var smc = await tonClient.SmcLoad(value.Address).ConfigureAwait(false);
 
 			var data1 = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_order_data")).ConfigureAwait(false);
 			if (data1.ExitCode != 0)
 			{
-				throw new NonZeroExitCodeException(data1.ExitCode, address, "get_order_data");
+				throw new NonZeroExitCodeException(data1.ExitCode, value.Address, "get_order_data");
 			}
 
 			var data2 = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_responses")).ConfigureAwait(false);
 			if (data2.ExitCode != 0)
 			{
-				throw new NonZeroExitCodeException(data2.ExitCode, address, "get_responses");
+				throw new NonZeroExitCodeException(data2.ExitCode, value.Address, "get_responses");
 			}
 
 			await tonClient.SmcForget(smc.Id).ConfigureAwait(false);
@@ -280,6 +316,12 @@ namespace SomeDAO.Backend.Services
 			// (storage::responses, storage::responses_count)
 
 			var index = data1.Stack[1].ToLong();
+
+			if (index != value.Index)
+			{
+				throw new ApplicationException($"Order index mismatch: {index} got, {value.Index} expected for {value.Address}.");
+			}
+
 			var status = data1.Stack[3].ToInt();
 			var price = TonUtils.Coins.FromNano(data1.Stack[4].ToLong());
 			var deadline = data1.Stack[5].ToInt();
@@ -289,23 +331,19 @@ namespace SomeDAO.Backend.Services
 
 			var responsesCount = data2.Stack[1].ToInt();
 
-			var order = new Order()
-			{
-				Index = index,
-				Address = TonUtils.Address.SetBounceable(address, true),
-				Status = (OrderStatus)status,
-				CustomerAddress = customerAddress,
-				FreelancerAddress = freelancerAddress,
-				CreatedAt = DateTimeOffset.UtcNow.Truncate(TimeSpan.FromSeconds(1)),
-				ResponsesCount = responsesCount,
-			};
+			value.Status = (OrderStatus)status;
+			value.CustomerAddress = customerAddress;
+			value.FreelancerAddress = freelancerAddress;
+			value.CreatedAt = DateTimeOffset.UtcNow.Truncate(TimeSpan.FromSeconds(1));
+			value.ResponsesCount = responsesCount;
 
-			FillOrderContent(order, content.RootCells[0]);
+			FillOrderContent(value, content.RootCells[0]);
 
-			order.Price = price;
-			order.Deadline = DateTimeOffset.FromUnixTimeSeconds(deadline);
+			// overwrite values from content
+			value.Price = price;
+			value.Deadline = DateTimeOffset.FromUnixTimeSeconds(deadline);
 
-			return order;
+			return true;
 		}
 
 		private static string GetSHA256OfStringAsHex(string value)

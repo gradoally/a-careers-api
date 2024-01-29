@@ -1,8 +1,9 @@
-﻿using SQLite;
+﻿using System.Text.Json.Serialization;
+using SQLite;
 
 namespace SomeDAO.Backend.Data
 {
-	public class User : IUserContent
+	public class User : IUserContent, IBlockchainEntity
 	{
 		[PrimaryKey]
 		public long Index { get; set; }
@@ -40,6 +41,22 @@ namespace SomeDAO.Backend.Data
 		public string? Resume { get; set; }
 
 		public string? Specialization { get; set; }
+
+		#endregion
+
+		#region IBlockchainEntity
+
+		[JsonIgnore]
+		public EntityType EntityType { get; } = EntityType.User;
+
+		[JsonIgnore]
+		public long LastTxLt { get; set; }
+
+		[JsonIgnore]
+		public string? LastTxHash { get; set; }
+
+		[JsonIgnore]
+		public DateTimeOffset LastSync { get; set; }
 
 		#endregion
 	}

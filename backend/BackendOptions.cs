@@ -20,6 +20,12 @@
 
         public TimeSpan SearchCacheForceReloadInterval { get; set; } = TimeSpan.FromMinutes(5);
 
+        public TimeSpan AdminForceResyncInterval { get; set; } = TimeSpan.FromHours(1);
+
+        public TimeSpan UserForceResyncInterval { get; set; } = TimeSpan.FromHours(1);
+
+        public TimeSpan OrderForceResyncInterval { get; set; } = TimeSpan.FromHours(2);
+
         //public Uri TonApiMainnetEndoint { get; set; } = new Uri("http://localhost");
 
         //public Uri TonApiTestnetEndoint { get; set; } = new Uri("http://localhost");

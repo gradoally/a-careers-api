@@ -3,7 +3,7 @@ using SQLite;
 
 namespace SomeDAO.Backend.Data
 {
-    public class Order : IOrderContent
+    public class Order : IOrderContent, IBlockchainEntity
     {
 		[PrimaryKey]
 		public long Index { get; set; }
@@ -54,6 +54,22 @@ namespace SomeDAO.Backend.Data
 		public string? Description { get; set; }
 
 		public string? TechnicalTask { get; set; }
+
+		#endregion
+
+		#region IBlockchainEntity
+
+		[JsonIgnore]
+		public EntityType EntityType { get; } = EntityType.Order;
+
+		[JsonIgnore]
+		public long LastTxLt { get; set; }
+
+		[JsonIgnore]
+		public string? LastTxHash { get; set; }
+
+		[JsonIgnore]
+		public DateTimeOffset LastSync { get; set; }
 
 		#endregion
 

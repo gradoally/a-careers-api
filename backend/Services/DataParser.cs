@@ -26,6 +26,11 @@ namespace SomeDAO.Backend.Services
 		private static readonly string PropTechnicalTask = GetSHA256OfStringAsHex("technical_task");
 		private static readonly string PropLanguage = GetSHA256OfStringAsHex("language");
 
+		public static string GetSHA256OfStringAsHex(string value)
+		{
+			return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
+		}
+
 		public static void FillAdminContent(IAdminContent value, Cell fromDict)
 		{
 			var dict = fromDict.ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)), x => x, StringComparer.Ordinal);
@@ -36,7 +41,7 @@ namespace SomeDAO.Backend.Services
 
 			if (dict.TryGetValue(PropCategory, out var s))
 			{
-				value.Category = "0x" + Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
+				value.Category = Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
 			}
 
 			if (dict.TryGetValue(PropCanApproveUser, out s))
@@ -144,12 +149,12 @@ namespace SomeDAO.Backend.Services
 
 			if (dict.TryGetValue(PropCategory, out var s))
 			{
-				value.Category = "0x" + Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
+				value.Category = Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
 			}
 
 			if (dict.TryGetValue(PropLanguage, out s))
 			{
-				value.Language = "0x" + Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
+				value.Language = Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
 			}
 
 			if (dict.TryGetValue(PropName, out s))
@@ -344,11 +349,6 @@ namespace SomeDAO.Backend.Services
 			value.Deadline = DateTimeOffset.FromUnixTimeSeconds(deadline);
 
 			return true;
-		}
-
-		private static string GetSHA256OfStringAsHex(string value)
-		{
-			return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
 		}
 	}
 }

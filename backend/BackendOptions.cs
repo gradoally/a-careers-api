@@ -31,5 +31,7 @@
         //public Uri TonApiTestnetEndoint { get; set; } = new Uri("http://localhost");
 
         //public int SearchMaxCount { get; set; } = 100;
+
+        public Dictionary<string, string> Categories { get; set; } = new();
     }
 }

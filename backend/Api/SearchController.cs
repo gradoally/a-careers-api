@@ -7,36 +7,41 @@ using TonLibDotNet;
 
 namespace SomeDAO.Backend.Api
 {
-    [ApiController]
-    [Consumes(System.Net.Mime.MediaTypeNames.Application.Json)]
-    [Produces(System.Net.Mime.MediaTypeNames.Application.Json)]
-    [Route("/api/[action]")]
-    [SwaggerResponse(200, "Request is accepted, processed and response contains requested data.")]
-    public class SearchController : ControllerBase
-    {
-        private readonly ILogger logger;
+	[ApiController]
+	[Consumes(System.Net.Mime.MediaTypeNames.Application.Json)]
+	[Produces(System.Net.Mime.MediaTypeNames.Application.Json)]
+	[Route("/api/[action]")]
+	[SwaggerResponse(200, "Request is accepted, processed and response contains requested data.")]
+	public class SearchController : ControllerBase
+	{
+		private readonly ILogger logger;
 		private readonly CachedData searchService;
 		private readonly BackendConfig backendConfig;
 
-        public SearchController(ILogger<SearchController> logger, CachedData searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions)
-        {
-            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            this.searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
-            this.backendConfig = new BackendConfig
-            {
+		public SearchController(ILogger<SearchController> logger, CachedData searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions)
+		{
+			this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+			this.searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
+			this.backendConfig = new BackendConfig
+			{
 				MasterContractAddress = backendOptions.Value.MasterAddress,
-                Mainnet = tonOptions.Value.UseMainnet,
-            };
-        }
+				Mainnet = tonOptions.Value.UseMainnet,
+			};
 
-        /// <summary>
-        /// Returns general configuration data.
-        /// </summary>
-        [HttpGet]
-        public ActionResult<BackendConfig> Config()
-        {
-            return backendConfig;
-        }
+			backendConfig.Categories = backendOptions.Value.Categories
+				.Select(x => new KeyValuePair<string, string>(DataParser.GetSHA256OfStringAsHex(x.Key).ToLowerInvariant(), x.Value))
+				.OrderBy(x => x.Value)
+				.ToList();
+		}
+
+		/// <summary>
+		/// Returns general configuration data.
+		/// </summary>
+		[HttpGet]
+		public ActionResult<BackendConfig> Config()
+		{
+			return backendConfig;
+		}
 
 		/// <summary>
 		/// Returns list of ACTIVE (available to work at) Orders that meet filter.
@@ -139,15 +144,15 @@ namespace SomeDAO.Backend.Api
 		/// <param name="address">Address of user's main wallet (in user-friendly form).</param>
 		[SwaggerResponse(400, "Address is empty or invalid.")]
 		[HttpGet]
-        public ActionResult<FindResult<User>> FindUser(string address)
-        {
-            if (string.IsNullOrEmpty(address))
-            {
-                ModelState.AddModelError(nameof(address), "Address is required.");
-                return ValidationProblem();
-            }
+		public ActionResult<FindResult<User>> FindUser(string address)
+		{
+			if (string.IsNullOrEmpty(address))
+			{
+				ModelState.AddModelError(nameof(address), "Address is required.");
+				return ValidationProblem();
+			}
 			else if (!TonUtils.Address.TrySetBounceable(address, false, out address))
-            {
+			{
 				ModelState.AddModelError(nameof(address), "Address not valid (wrong length, contains invalid characters, etc).");
 			}
 
@@ -158,7 +163,7 @@ namespace SomeDAO.Backend.Api
 
 			var user = searchService.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, address));
 			return new FindResult<User>(user);
-        }
+		}
 
 		/// <summary>
 		/// Get user by index.
@@ -308,11 +313,13 @@ namespace SomeDAO.Backend.Api
 		}
 
 		public class BackendConfig
-        {
-            public string MasterContractAddress { get; set; } = string.Empty;
+		{
+			public string MasterContractAddress { get; set; } = string.Empty;
 
-            public bool Mainnet { get; set; }
-        }
+			public bool Mainnet { get; set; }
+
+			public List<KeyValuePair<string, string>> Categories { get; set; } = new();
+		}
 
 		public class UserStat
 		{

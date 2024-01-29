@@ -29,8 +29,13 @@ namespace SomeDAO.Backend.Api
 			};
 
 			backendConfig.Categories = backendOptions.Value.Categories
-				.Select(x => new KeyValuePair<string, string>(DataParser.GetSHA256OfStringAsHex(x.Key).ToLowerInvariant(), x.Value))
+				.Select(x => new BackendConfig.KeyCodeValue(DataParser.GetSHA256OfStringAsHex(x.Key).ToLowerInvariant(), x.Key, x.Value))
 				.OrderBy(x => x.Value)
+				.ToList();
+
+			backendConfig.Languages = backendOptions.Value.Languages
+				.Select(x => new BackendConfig.KeyCodeValue(DataParser.GetSHA256OfStringAsHex(x.Key).ToLowerInvariant(), x.Key, x.Value))
+				.OrderBy(x => x.Code)
 				.ToList();
 		}
 
@@ -345,7 +350,18 @@ namespace SomeDAO.Backend.Api
 
 			public bool Mainnet { get; set; }
 
-			public List<KeyValuePair<string, string>> Categories { get; set; } = new();
+			public List<KeyCodeValue> Categories { get; set; } = new();
+
+			public List<KeyCodeValue> Languages { get; set; } = new();
+
+			public class KeyCodeValue(string key, string code, string value)
+			{
+				public string Key { get; set; } = key;
+
+				public string Code { get; set; } = code;
+
+				public string Value { get; set; } = value;
+			}
 		}
 
 		public class UserStat

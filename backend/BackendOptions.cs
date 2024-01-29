@@ -19,5 +19,7 @@
         public TimeSpan OrderForceResyncInterval { get; set; } = TimeSpan.FromHours(2);
 
         public Dictionary<string, string> Categories { get; set; } = new();
+
+        public Dictionary<string, string> Languages { get; set; } = new();
     }
 }

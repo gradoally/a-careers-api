@@ -204,6 +204,33 @@ namespace SomeDAO.Backend.Api
 		}
 
 		/// <summary>
+		/// Find order by contract address.
+		/// </summary>
+		/// <param name="address">Address of order contract (in user-friendly form).</param>
+		[SwaggerResponse(400, "Address is empty or invalid.")]
+		[HttpGet]
+		public ActionResult<FindResult<Order>> FindOrder(string address)
+		{
+			if (string.IsNullOrEmpty(address))
+			{
+				ModelState.AddModelError(nameof(address), "Address is required.");
+				return ValidationProblem();
+			}
+			else if (!TonUtils.Address.TrySetBounceable(address, true, out address))
+			{
+				ModelState.AddModelError(nameof(address), "Address not valid (wrong length, contains invalid characters, etc).");
+			}
+
+			if (!ModelState.IsValid)
+			{
+				return ValidationProblem();
+			}
+
+			var order = searchService.AllOrders.Find(x => StringComparer.Ordinal.Equals(x.Address, address));
+			return new FindResult<Order>(order);
+		}
+
+		/// <summary>
 		/// Get user statistics - number of orders, detailed by role (customer / freelancer) and by status.
 		/// </summary>
 		/// <param name="index">ID of user ('index' field from user contract).</param>

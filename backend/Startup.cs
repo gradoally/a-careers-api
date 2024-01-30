@@ -3,12 +3,12 @@ namespace SomeDAO.Backend
     using System;
     using System.Collections.Generic;
     using System.Reflection;
-	using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.HttpOverrides;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-	using Microsoft.OpenApi.Models;
-	using RecurrentTasks;
+    using Microsoft.OpenApi.Models;
+    using RecurrentTasks;
     using SomeDAO.Backend.Data;
     using SomeDAO.Backend.Services;
     using TonLibDotNet;
@@ -57,8 +57,8 @@ namespace SomeDAO.Backend
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(o =>
             {
-				o.SupportNonNullableReferenceTypes();
-				o.SwaggerDoc("backend", new OpenApiInfo()
+                o.SupportNonNullableReferenceTypes();
+                o.SwaggerDoc("backend", new OpenApiInfo()
                 {
                     Title = "Backend API",
                     Description = "Backend API for SomeDAO frontend.",

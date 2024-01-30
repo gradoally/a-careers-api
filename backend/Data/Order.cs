@@ -12,83 +12,83 @@ namespace SomeDAO.Backend.Data
         [NotNull, Indexed(Unique = true)]
         public long Index { get; set; }
 
-		/// <summary>
-		/// Smartcontract address - in bounceable form.
-		/// </summary>
-		[NotNull, Indexed(Unique = true)]
-		public string Address { get; set; } = string.Empty;
+        /// <summary>
+        /// Smartcontract address - in bounceable form.
+        /// </summary>
+        [NotNull, Indexed(Unique = true)]
+        public string Address { get; set; } = string.Empty;
 
         [Indexed]
         public OrderStatus Status { get; set; }
 
-		/// <summary>
-		/// User wallet address - in non-bounceable form.
-		/// </summary>
-		[NotNull, Indexed]
-		public string CustomerAddress { get; set; } = string.Empty;
+        /// <summary>
+        /// User wallet address - in non-bounceable form.
+        /// </summary>
+        [NotNull, Indexed]
+        public string CustomerAddress { get; set; } = string.Empty;
 
-		[Ignore]
-		public User? Customer { get; set; }
+        [Ignore]
+        public User? Customer { get; set; }
 
-		/// <summary>
-		/// User wallet address - in non-bounceable form.
-		/// </summary>
-		[Indexed]
-		public string? FreelancerAddress { get; set; }
+        /// <summary>
+        /// User wallet address - in non-bounceable form.
+        /// </summary>
+        [Indexed]
+        public string? FreelancerAddress { get; set; }
 
-		[Ignore]
-		public User? Freelancer { get; set; }
+        [Ignore]
+        public User? Freelancer { get; set; }
 
-		public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
 
-		public int ResponsesCount { get; set; }
+        public int ResponsesCount { get; set; }
 
-		#region IOrderContent
+        #region IOrderContent
 
-		public string? Category { get; set; }
+        public string? Category { get; set; }
 
-		public string? Language { get; set; }
+        public string? Language { get; set; }
 
-		public string? Name { get; set; }
+        public string? Name { get; set; }
 
-		public decimal Price { get; set; }
+        public decimal Price { get; set; }
 
-		public DateTimeOffset Deadline { get; set; }
+        public DateTimeOffset Deadline { get; set; }
 
-		public string? Description { get; set; }
+        public string? Description { get; set; }
 
-		public string? TechnicalTask { get; set; }
+        public string? TechnicalTask { get; set; }
 
-		#endregion
+        #endregion
 
-		#region IBlockchainEntity
+        #region IBlockchainEntity
 
-		[JsonIgnore]
-		public EntityType EntityType { get; } = EntityType.Order;
+        [JsonIgnore]
+        public EntityType EntityType { get; } = EntityType.Order;
 
-		[JsonIgnore]
-		public long LastTxLt { get; set; }
+        [JsonIgnore]
+        public long LastTxLt { get; set; }
 
-		[JsonIgnore]
-		public string? LastTxHash { get; set; }
+        [JsonIgnore]
+        public string? LastTxHash { get; set; }
 
-		[JsonIgnore]
-		public DateTimeOffset LastSync { get; set; }
+        [JsonIgnore]
+        public DateTimeOffset LastSync { get; set; }
 
-		#endregion
+        #endregion
 
-		[JsonIgnore]
-		private string? textToSearch = null;
+        [JsonIgnore]
+        private string? textToSearch = null;
 
-		[JsonIgnore]
-		[Ignore]
-		public string TextToSearch
-		{
-			get
-			{
-				textToSearch ??= Name?.ToUpperInvariant() + " " + Description?.ToUpperInvariant();
-				return textToSearch;
-			}
-		}
-	}
+        [JsonIgnore]
+        [Ignore]
+        public string TextToSearch
+        {
+            get
+            {
+                textToSearch ??= Name?.ToUpperInvariant() + " " + Description?.ToUpperInvariant();
+                return textToSearch;
+            }
+        }
+    }
 }

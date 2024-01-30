@@ -12,18 +12,18 @@ namespace SomeDAO.Backend.Services
         private readonly ILogger logger;
         private readonly BackendOptions options;
 
-		public CachedData(ILogger<CachedData> logger, IOptions<BackendOptions> options)
+        public CachedData(ILogger<CachedData> logger, IOptions<BackendOptions> options)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         }
 
-		public List<Admin> AllAdmins { get; private set; } = new();
-		public List<User> AllUsers { get; private set; } = new();
-		public List<Order> AllOrders { get; private set; } = new();
-		public List<Order> AllActiveOrders { get; private set; } = new();
+        public List<Admin> AllAdmins { get; private set; } = new();
+        public List<User> AllUsers { get; private set; } = new();
+        public List<Order> AllOrders { get; private set; } = new();
+        public List<Order> AllActiveOrders { get; private set; } = new();
 
-		public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
+        public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
             var db = scopeServiceProvider.GetRequiredService<IDbProvider>();
 
@@ -37,18 +37,18 @@ namespace SomeDAO.Backend.Services
             var activeOrders = orders.Where(x => x.Status == OrderStatus.Active).ToList();
             logger.LogDebug("Loaded {Count} orders (including {Count} active)", orders.Count, activeOrders.Count);
 
-			foreach(var order in orders)
-			{
-				order.Customer = users.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.CustomerAddress));
-				order.Freelancer = users.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.FreelancerAddress));
-			}
+            foreach (var order in orders)
+            {
+                order.Customer = users.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.CustomerAddress));
+                order.Freelancer = users.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.FreelancerAddress));
+            }
 
-			logger.LogDebug("Users applied to Orders");
+            logger.LogDebug("Users applied to Orders");
 
-			AllAdmins = admins;
+            AllAdmins = admins;
             AllUsers = users;
             AllOrders = orders;
             AllActiveOrders = activeOrders;
         }
-	}
+    }
 }

@@ -1,17 +1,17 @@
 ﻿namespace SomeDAO.Backend.Data
 {
-	public interface IBlockchainEntity
-	{
-		long Index { get; }
+    public interface IBlockchainEntity
+    {
+        long Index { get; }
 
-		string Address { get; }
+        string Address { get; }
 
-		EntityType EntityType { get; }
+        EntityType EntityType { get; }
 
-		long LastTxLt { get; set; }
+        long LastTxLt { get; set; }
 
-		string? LastTxHash { get; set; }
+        string? LastTxHash { get; set; }
 
-		DateTimeOffset LastSync { get; set; }
-	}
+        DateTimeOffset LastSync { get; set; }
+    }
 }

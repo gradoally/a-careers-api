@@ -5,8 +5,12 @@ namespace SomeDAO.Backend.Data
 {
     public class Order : IOrderContent, IBlockchainEntity
     {
-		[PrimaryKey]
-		public long Index { get; set; }
+        [JsonIgnore]
+        [PrimaryKey, AutoIncrement]
+        public long Id { get; set; }
+
+        [NotNull, Indexed(Unique = true)]
+        public long Index { get; set; }
 
 		/// <summary>
 		/// Smartcontract address - in bounceable form.

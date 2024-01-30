@@ -5,7 +5,11 @@ namespace SomeDAO.Backend.Data
 {
 	public class Admin : IAdminContent, IBlockchainEntity
 	{
-		[PrimaryKey]
+		[JsonIgnore]
+		[PrimaryKey, AutoIncrement]
+		public long Id { get; set; }
+
+		[NotNull, Indexed(Unique = true)]
 		public long Index { get; set; }
 
 		/// <summary>

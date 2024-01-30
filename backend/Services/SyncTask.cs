@@ -107,7 +107,7 @@ namespace SomeDAO.Backend.Services
 
 		protected async Task<DateTimeOffset> SyncAdmin(long index)
 		{
-			var admin = await dbProvider.MainDb.FindAsync<Admin>(index);
+			var admin = await dbProvider.MainDb.Table<Admin>().FirstOrDefaultAsync(x => x.Index == index);
 			if (admin == null)
 			{
 				logger.LogWarning("Admin #{Index} was not found, nothing to sync", index);
@@ -121,8 +121,8 @@ namespace SomeDAO.Backend.Services
 
 		protected async Task<DateTimeOffset> SyncUser(long index)
 		{
-			var user = await dbProvider.MainDb.FindAsync<User>(index);
-			if (user == null)
+			var user = await dbProvider.MainDb.Table<User>().FirstOrDefaultAsync(x => x.Index == index);
+            if (user == null)
 			{
 				logger.LogWarning("User #{Index} was not found, nothing to sync", index);
 				return DateTimeOffset.MaxValue;
@@ -135,8 +135,8 @@ namespace SomeDAO.Backend.Services
 
 		protected async Task<DateTimeOffset> SyncOrder(long index)
 		{
-			var order = await dbProvider.MainDb.FindAsync<Order>(index);
-			if (order == null)
+			var order = await dbProvider.MainDb.Table<Order>().FirstOrDefaultAsync(x => x.Index == index);
+            if (order == null)
 			{
 				logger.LogWarning("Order #{Index} was not found, nothing to sync", index);
 				return DateTimeOffset.MaxValue;

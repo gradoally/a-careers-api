@@ -39,8 +39,8 @@ namespace SomeDAO.Backend.Services
 
 			foreach(var order in orders)
 			{
-				order.Customer = users.Find(x => x.UserAddress == order.CustomerAddress);
-				order.Freelancer = users.Find(x => x.UserAddress == order.FreelancerAddress);
+				order.Customer = users.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.CustomerAddress));
+				order.Freelancer = users.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.FreelancerAddress));
 			}
 
 			logger.LogDebug("Users applied to Orders");

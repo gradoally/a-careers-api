@@ -26,7 +26,7 @@ namespace SomeDAO.Backend.Services
         {
             var db = dbProvider.MainDb;
 
-            var admin = await db.FindAsync<Admin>(0);
+            var admin = await db.FindAsync<Admin>(x => x.Index == 0);
             if (admin == null)
             {
                 admin = new Admin()
@@ -38,7 +38,7 @@ namespace SomeDAO.Backend.Services
                 await db.InsertAsync(admin).ConfigureAwait(false);
             }
 
-            var user = await db.FindAsync<User>(0);
+            var user = await db.FindAsync<User>(x => x.Index == 0);
             if (user == null)
             {
                 user = new User()
@@ -50,7 +50,7 @@ namespace SomeDAO.Backend.Services
                 await db.InsertAsync(user).ConfigureAwait(false);
             }
 
-            var order = await db.FindAsync<Order>(0);
+            var order = await db.FindAsync<Order>(x => x.Index == 0);
             if (order == null)
             {
                 order = new Order()

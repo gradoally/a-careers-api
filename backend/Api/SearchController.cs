@@ -312,6 +312,75 @@ namespace SomeDAO.Backend.Api
             return list;
         }
 
+        /// <summary>
+        /// Get list of user activity in different orders.
+        /// </summary>
+        /// <param name="index">ID of user ('index' field from user contract).</param>
+        /// <param name="page">Page number to return (default 0).</param>
+        /// <param name="pageSize">Page size (default 10, max 100).</param>
+        [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
+        [HttpGet]
+        public async Task<ActionResult<List<OrderActivity>>> GetUserActivity(
+            [FromServices] IDbProvider dbProvider,
+            long index,
+            int page = 0,
+            int pageSize = 10)
+        {
+            var user = searchService.AllUsers.Find(x => x.Index == index);
+
+            if (user == null)
+            {
+                ModelState.AddModelError(nameof(index), "Invalid index (or user does not exist).");
+                return ValidationProblem();
+            }
+
+            var list = await dbProvider.MainDb.Table<OrderActivity>()
+                .Where(x => x.SenderAddress == user.UserAddress)
+                .OrderByDescending(x => x.Timestamp)
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return list;
+        }
+
+        /// <summary>
+        /// Get list of order activity.
+        /// </summary>
+        /// <param name="index">ID of order ('index' field from user contract).</param>
+        /// <param name="page">Page number to return (default 0).</param>
+        /// <param name="pageSize">Page size (default 10, max 100).</param>
+        [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
+        [HttpGet]
+        public async Task<ActionResult<List<OrderActivity>>> GetOrderActivity(
+            [FromServices] IDbProvider dbProvider,
+            long index,
+            int page = 0,
+            int pageSize = 10)
+        {
+            var order = searchService.AllOrders.Find(x => x.Index == index);
+
+            if (order == null)
+            {
+                ModelState.AddModelError(nameof(index), "Invalid index (or order does not exist).");
+                return ValidationProblem();
+            }
+
+            var list = await dbProvider.MainDb.Table<OrderActivity>()
+                .Where(x => x.OrderId == order.Id)
+                .OrderByDescending(x => x.Timestamp)
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            foreach(var item in list)
+            {
+                item.Sender = searchService.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, item.SenderAddress));
+            }
+
+            return list;
+        }
+
         protected IEnumerable<Order> SearchActiveOrders(
             string? query,
             string? category,

@@ -334,12 +334,18 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
+            var allOrders = searchService.AllOrders;
             var list = await dbProvider.MainDb.Table<OrderActivity>()
                 .Where(x => x.SenderAddress == user.UserAddress)
                 .OrderByDescending(x => x.Timestamp)
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
+            foreach (var item in list)
+            {
+                item.Order = allOrders.Find(x => x.Id == item.OrderId);
+            }
 
             return list;
         }
@@ -366,6 +372,7 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
+            var allUsers = searchService.AllUsers;
             var list = await dbProvider.MainDb.Table<OrderActivity>()
                 .Where(x => x.OrderId == order.Id)
                 .OrderByDescending(x => x.Timestamp)
@@ -375,7 +382,7 @@ namespace SomeDAO.Backend.Api
 
             foreach(var item in list)
             {
-                item.Sender = searchService.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, item.SenderAddress));
+                item.Sender = allUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, item.SenderAddress));
             }
 
             return list;

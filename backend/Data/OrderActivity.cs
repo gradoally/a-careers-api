@@ -10,6 +10,9 @@ namespace SomeDAO.Backend.Data
 		[NotNull, Indexed(Name = "UNQ", Order = 1, Unique = true)]
 		public long OrderId { get; set; }
 
+        [Ignore]
+        public Order? Order { get; set; }
+
 		[NotNull, Indexed(Name = "UNQ", Order = 2, Unique = true)]
 		public long TxLt { get;set; }
 

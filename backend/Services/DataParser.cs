@@ -1,11 +1,13 @@
 ﻿using SomeDAO.Backend.Data;
 using TonLibDotNet;
 using TonLibDotNet.Cells;
+using TonLibDotNet.Types.Internal;
+using TonLibDotNet.Types.Raw;
 using TonLibDotNet.Types.Smc;
 
 namespace SomeDAO.Backend.Services
 {
-    public class DataParser(ITonClient tonClient)
+    public class DataParser(ILogger<DataParser> logger, ITonClient tonClient)
     {
         private static readonly string PropCategory = GetSHA256OfStringAsHex("category");
         private static readonly string PropCanApproveUser = GetSHA256OfStringAsHex("can_approve_user");
@@ -349,6 +351,113 @@ namespace SomeDAO.Backend.Services
             value.Deadline = DateTimeOffset.FromUnixTimeSeconds(deadline);
 
             return true;
+        }
+
+        public async IAsyncEnumerable<OrderActivity> GetOrderActivities(Order order, long endLt)
+        {
+            var start = new TransactionId() { Lt = order.LastTxLt, Hash = order.LastTxHash! };
+            await foreach (var tx in EnumerateTransactions(order.Address, start, endLt))
+            {
+                // TODO: Skip non-successful transactions
+
+                if (tx.InMsg == null)
+                {
+                    logger.LogDebug("Tx for Order {Address} ignored: in_msg is empty at {Time} ({Lt}:{Hash})", order.Address, tx.Utime, tx.TransactionId.Lt, tx.TransactionId.Hash);
+                    continue;
+                }
+
+                if (tx.InMsg.MsgData is not TonLibDotNet.Types.Msg.DataRaw data)
+                {
+                    logger.LogDebug("Tx for Order {Address} ignored: in_msg.data is not raw at {Time} ({Lt}/{Hash})", order.Address, tx.Utime, tx.TransactionId.Lt, tx.TransactionId.Hash);
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(data.Body))
+                {
+                    logger.LogDebug("Tx for Order {Address} ignored: in_msg.body is empty at {Time} ({Lt}/{Hash})", order.Address, tx.Utime, tx.TransactionId.Lt, tx.TransactionId.Hash);
+                    continue;
+                }
+
+                var boc = Boc.ParseFromBase64(data.Body);
+                var slice = boc.RootCells[0].BeginRead();
+
+                if (slice.Length < 32)
+                {
+                    logger.LogDebug("Tx for Order {Address} ignored: in_msg.body is less than 32 bits at {Time} ({Lt}/{Hash})", order.Address, tx.Utime, tx.TransactionId.Lt, tx.TransactionId.Hash);
+                    continue;
+                }
+
+                var op = (OpCode)slice.LoadInt(32);
+                if (op == OpCode.Unknown || !Enum.IsDefined(op))
+                {
+                    logger.LogDebug("Tx for Order {Address} ignored: unknown op-code {Value} at {Time} ({Lt}/{Hash})", order.Address, op, tx.Utime, tx.TransactionId.Lt, tx.TransactionId.Hash);
+                    continue;
+                }
+
+                var role = op switch
+                {
+                    OpCode.AssignUser => OrderActivitySenderRole.Customer,
+                    OpCode.AcceptOrder => OrderActivitySenderRole.Freelancer,
+                    OpCode.RejectOrder => OrderActivitySenderRole.Freelancer,
+                    OpCode.CancelAssign => OrderActivitySenderRole.Customer,
+                    OpCode.Refund => OrderActivitySenderRole.Customer,
+                    OpCode.CompleteOrder => OrderActivitySenderRole.Freelancer,
+                    OpCode.ForcePayment => OrderActivitySenderRole.Freelancer,
+                    OpCode.CustomerFeedback => OrderActivitySenderRole.Customer,
+                    _ => OrderActivitySenderRole.Unspecified,
+                };
+
+                // TODO: Detect contract deployment and update Order.CreatedAt
+
+                var bounceable = role == OrderActivitySenderRole.Customer || role == OrderActivitySenderRole.Freelancer ? false : true;
+
+                var activity = new OrderActivity
+                {
+                    OrderId = order.Id,
+                    TxLt = tx.TransactionId.Lt,
+                    TxHash = tx.TransactionId.Hash,
+                    Timestamp = tx.Utime,
+                    OpCode = op,
+                    SenderRole = role,
+                    SenderAddress = TonUtils.Address.SetBounceable(tx.InMsg.Source.Value, bounceable),
+                    Amount = TonUtils.Coins.FromNano(tx.InMsg.Value),
+                };
+
+                yield return activity;
+            }
+        }
+
+        public async IAsyncEnumerable<Transaction> EnumerateTransactions(string address, TransactionId start, long endLt)
+        {
+            await tonClient.InitIfNeeded().ConfigureAwait(false);
+
+            while (!start.IsEmpty())
+            {
+                var res = await tonClient.RawGetTransactions(address, start).ConfigureAwait(false);
+                if (res.TransactionsList.Count == 0)
+                {
+                    yield break;
+                }
+
+                foreach (var tx in res.TransactionsList)
+                {
+                    if (tx.TransactionId.Lt == endLt)
+                    {
+                        yield break;
+                    }
+
+                    yield return tx;
+                }
+
+                if (res.PreviousTransactionId.Lt == endLt)
+                {
+                    yield break;
+                }
+                else
+                {
+                    start = res.PreviousTransactionId;
+                }
+            }
         }
     }
 }

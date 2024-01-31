@@ -142,8 +142,25 @@ namespace SomeDAO.Backend.Services
                 return DateTimeOffset.MaxValue;
             }
 
+            var endLt = order.LastTxLt;
             await dataParser.UpdateOrder(order).ConfigureAwait(false);
+
+            await foreach(var activity in dataParser.GetOrderActivities(order, endLt))
+            {
+                var exist = await dbProvider.MainDb.Table<OrderActivity>().CountAsync(x => x.OrderId == order.Id && x.TxLt == activity.TxLt);
+                if (exist == 0)
+                {
+                    logger.LogDebug("Tx for Order {Address} added: Op {OpCode} at {Time} ({Lt}/{Hash})", order.Address, activity.OpCode, activity.Timestamp, activity.TxLt, activity.TxHash);
+                    await dbProvider.MainDb.InsertAsync(activity).ConfigureAwait(false);
+                }
+                else
+                {
+                    logger.LogDebug("Tx for Order {Address} already exists: Op {OpCode} at {Time} ({Lt}/{Hash})", order.Address, activity.OpCode, activity.Timestamp, activity.TxLt, activity.TxHash);
+                }
+            }
+
             await dbProvider.MainDb.InsertOrReplaceAsync(order).ConfigureAwait(false);
+
             return order.LastSync;
         }
 

@@ -9,13 +9,13 @@ namespace SomeDAO.Backend.Data
             // Nothing
         }
 
-        public SyncQueueItem(IBlockchainEntity entity, DateTimeOffset? minLastSync = null)
+        public SyncQueueItem(IBlockchainEntity entity, DateTimeOffset minLastSync)
         {
             Index = entity.Index;
             EntityType = entity.EntityType;
             SyncAt = DateTimeOffset.UtcNow;
             RetryCount = 0;
-            MinLastSync = minLastSync ?? DateTimeOffset.MinValue;
+            MinLastSync = minLastSync;
         }
 
         [PrimaryKey, AutoIncrement]

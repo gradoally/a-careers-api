@@ -13,13 +13,15 @@ namespace SomeDAO.Backend.Services
         private readonly IDbProvider dbProvider;
         private readonly ITask task;
         private readonly BackendOptions options;
+        private readonly SyncSchedulerService syncScheduler;
 
-        public DevInitService(ILogger<DevInitService> logger, IDbProvider dbProvider, ITask<SyncTask> task, IOptions<BackendOptions> options)
+        public DevInitService(ILogger<DevInitService> logger, IDbProvider dbProvider, ITask<SyncTask> task, IOptions<BackendOptions> options, SyncSchedulerService syncScheduler)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             this.task = task ?? throw new ArgumentNullException(nameof(task));
             this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+            this.syncScheduler = syncScheduler ?? throw new ArgumentNullException(nameof(syncScheduler));
         }
 
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
@@ -62,9 +64,9 @@ namespace SomeDAO.Backend.Services
                 await db.InsertAsync(order).ConfigureAwait(false);
             }
 
-            await db.InsertAsync(new SyncQueueItem(admin));
-            await db.InsertAsync(new SyncQueueItem(user));
-            await db.InsertAsync(new SyncQueueItem(order));
+            await syncScheduler.Schedule(admin);
+            await syncScheduler.Schedule(user);
+            await syncScheduler.Schedule(order);
 
             logger.LogInformation("Initial data saved into DB");
 

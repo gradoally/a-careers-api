@@ -43,6 +43,7 @@ namespace SomeDAO.Backend
             services.AddSingleton<IDbProvider, DbProvider>();
             services.AddSingleton<DataParser>();
             services.AddSingleton<CachedData>();
+            services.AddScoped<SyncSchedulerService>();
 
             services.AddTask<DevInitService>(o => o.AutoStart(DevInitService.Interval, TimeSpan.FromSeconds(4)));
             //services.AddTask<NewOrdersDetector>(o => o.AutoStart(bo.NewOrdersDetectorInterval));

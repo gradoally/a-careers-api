@@ -29,12 +29,14 @@ namespace SomeDAO.Backend.Services
 
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
-            // Fast retry to init TonClient
-            currentTask.Options.Interval = HaveMoreDataInterval;
+            // Init TonClient and retry if needed, before actually syncing entities.
+            currentTask.Options.Interval = GetDelay(currentTask.RunStatus.FailsCount);
             await tonClient.InitIfNeeded().ConfigureAwait(false);
+            await tonClient.Sync().ConfigureAwait(false);
+            // TODO: Update with real seqno after library update.
+            logger.LogDebug("Synced to masterchain block {Seqno}.", 0);
 
             var db = dbProvider.MainDb;
-
             var counter = 0;
             while (counter < MaxBatch)
             {
@@ -166,6 +168,8 @@ namespace SomeDAO.Backend.Services
 
         private static TimeSpan GetDelay(int retryCount)
         {
+            // Actually, high delays are useless,
+            //   because ForceRecynsTask re-schedule objects more frequently (at *ForceResyncInterval).
             return retryCount switch
             {
                 0 => TimeSpan.FromSeconds(5),

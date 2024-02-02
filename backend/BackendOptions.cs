@@ -12,11 +12,11 @@
 
         public TimeSpan MasterResyncInterval { get; set; } = TimeSpan.FromSeconds(10);
 
-        public TimeSpan AdminForceResyncInterval { get; set; } = TimeSpan.FromHours(1);
+        public TimeSpan AdminForceResyncInterval { get; set; } = TimeSpan.FromDays(1);
 
-        public TimeSpan UserForceResyncInterval { get; set; } = TimeSpan.FromHours(1);
+        public TimeSpan UserForceResyncInterval { get; set; } = TimeSpan.FromDays(1);
 
-        public TimeSpan OrderForceResyncInterval { get; set; } = TimeSpan.FromHours(2);
+        public TimeSpan OrderForceResyncInterval { get; set; } = TimeSpan.FromDays(1);
 
         public Dictionary<string, string> Categories { get; set; } = new();
 

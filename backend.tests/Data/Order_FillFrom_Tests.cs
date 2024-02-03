@@ -16,11 +16,11 @@ namespace SomeDAO.Backend.Data
             DataParser.FillOrderContent(obj, Boc.ParseFromHex(dataHex).RootCells[0]);
 
             Assert.Equal(
-                "0x2658a7ac4df496ad72af39e532297cd89038ceb29d1c630e105bc4ebb24a3ba9",
+                "2658a7ac4df496ad72af39e532297cd89038ceb29d1c630e105bc4ebb24a3ba9",
                 obj.Category);
 
             Assert.Equal(
-                "0x5bcc40adf6e0a2a9c9317f9ac01481271b45ffdd5850d96b562752eee8167b85",
+                "5bcc40adf6e0a2a9c9317f9ac01481271b45ffdd5850d96b562752eee8167b85",
                 obj.Language);
 
             Assert.Equal(

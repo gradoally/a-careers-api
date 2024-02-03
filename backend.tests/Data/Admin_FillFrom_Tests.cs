@@ -16,7 +16,7 @@ namespace SomeDAO.Backend.Data
             DataParser.FillAdminContent(obj, Boc.ParseFromHex(dataHex).RootCells[0]);
 
             Assert.Equal(
-                "0x5ef5ef0364b6939c4ca61f34b393f7b368d1be8619647aaf83d5b395919ab629",
+                "5ef5ef0364b6939c4ca61f34b393f7b368d1be8619647aaf83d5b395919ab629",
                 obj.Category);
 
             Assert.True(obj.CanApproveUser);

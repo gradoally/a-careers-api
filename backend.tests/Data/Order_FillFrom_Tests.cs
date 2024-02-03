@@ -13,7 +13,7 @@ namespace SomeDAO.Backend.Data
 
             var obj = new Order();
 
-            DataParser.FillOrderContent(obj, Boc.ParseFromBytes(Convert.FromHexString(dataHex)).RootCells[0]);
+            DataParser.FillOrderContent(obj, Boc.ParseFromHex(dataHex).RootCells[0]);
 
             Assert.Equal(
                 "0x2658a7ac4df496ad72af39e532297cd89038ceb29d1c630e105bc4ebb24a3ba9",

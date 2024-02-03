@@ -33,8 +33,7 @@ namespace SomeDAO.Backend.Services
             currentTask.Options.Interval = GetDelay(currentTask.RunStatus.FailsCount);
             await tonClient.InitIfNeeded().ConfigureAwait(false);
             await tonClient.Sync().ConfigureAwait(false);
-            // TODO: Update with real seqno after library update.
-            logger.LogDebug("Synced to masterchain block {Seqno}.", 0);
+            logger.LogDebug("Synced to masterchain block {Seqno}.", tonClient.SyncStateCurrentSeqno);
 
             var db = dbProvider.MainDb;
             var counter = 0;

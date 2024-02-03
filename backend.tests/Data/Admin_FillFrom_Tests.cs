@@ -13,7 +13,7 @@ namespace SomeDAO.Backend.Data
 
             var obj = new Admin();
 
-            DataParser.FillAdminContent(obj, Boc.ParseFromBytes(Convert.FromHexString(dataHex)).RootCells[0]);
+            DataParser.FillAdminContent(obj, Boc.ParseFromHex(dataHex).RootCells[0]);
 
             Assert.Equal(
                 "0x5ef5ef0364b6939c4ca61f34b393f7b368d1be8619647aaf83d5b395919ab629",

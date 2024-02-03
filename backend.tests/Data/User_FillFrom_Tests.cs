@@ -13,7 +13,7 @@ namespace SomeDAO.Backend.Data
 
             var obj = new User();
 
-            DataParser.FillUserContent(obj, Boc.ParseFromBytes(Convert.FromHexString(dataHex)).RootCells[0]);
+            DataParser.FillUserContent(obj, Boc.ParseFromHex(dataHex).RootCells[0]);
 
             Assert.True(obj.IsUser);
 

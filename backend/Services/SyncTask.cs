@@ -31,7 +31,7 @@ namespace SomeDAO.Backend.Services
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
             // Init TonClient and retry if needed, before actually syncing entities.
-            currentTask.Options.Interval = GetDelay(currentTask.RunStatus.FailsCount);
+            currentTask.Options.Interval = GetTaskDelay(currentTask.RunStatus.FailsCount);
             await dataParser.EnsureSynced().ConfigureAwait(false);
 
             var db = dbProvider.MainDb;
@@ -235,6 +235,24 @@ namespace SomeDAO.Backend.Services
             await db.InsertOrReplaceAsync(new Settings(Settings.LAST_MASTER_DATA_HASH, md.hash)).ConfigureAwait(false);
 
             return md.syncTime;
+        }
+
+        private static TimeSpan GetTaskDelay(int failsCount)
+        {
+            return failsCount switch
+            {
+                0 => TimeSpan.FromSeconds(5),
+                1 => TimeSpan.FromSeconds(5),
+                2 => TimeSpan.FromSeconds(5),
+                3 => TimeSpan.FromSeconds(10),
+                4 => TimeSpan.FromSeconds(15),
+                5 => TimeSpan.FromSeconds(30),
+                6 => TimeSpan.FromSeconds(60),
+                7 => TimeSpan.FromMinutes(2),
+                8 => TimeSpan.FromMinutes(5),
+                9 => TimeSpan.FromMinutes(10),
+                _ => TimeSpan.FromMinutes(30),
+            };
         }
 
         private static TimeSpan GetDelay(int retryCount)

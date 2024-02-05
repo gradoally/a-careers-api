@@ -5,8 +5,11 @@ namespace SomeDAO.Backend.Data
     public class Settings
     {
         public const string KEY_DB_VERSION = "DB_VERSION";
-        public const string LAST_COLLECTION_TX_LT = "LAST_COLLECTION_TX_LT";
+        public const string LAST_MASTER_DATA_HASH = "LAST_MASTER_DATA_HASH";
         public const string LAST_MASTER_TX_LT = "LAST_MASTER_TX_LT";
+        public const string NEXT_INDEX_ADMIN = "NEXT_INDEX_ADMIN";
+        public const string NEXT_INDEX_USER = "NEXT_INDEX_USER";
+        public const string NEXT_INDEX_ORDER = "NEXT_INDEX_ORDER";
 
         [Obsolete("For data layer only")]
         public Settings()

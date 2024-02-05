@@ -1,4 +1,5 @@
 ﻿using SomeDAO.Backend.Data;
+using TonLibDotNet.Requests;
 
 namespace SomeDAO.Backend.Services
 {
@@ -44,6 +45,22 @@ namespace SomeDAO.Backend.Services
                 await db.InsertOrReplaceAsync(item).ConfigureAwait(false);
                 logger.LogTrace("Sync for {EntityType} #{Index} rescheduled (min = {Min}, retries = {Count}).", item.EntityType, item.Index, item.MinLastSync, item.RetryCount);
             }
+        }
+
+        public async Task ScheduleMaster()
+        {
+            var db = dbProvider.MainDb;
+            var item = await db.Table<SyncQueueItem>().FirstOrDefaultAsync(x => x.EntityType == EntityType.Master && x.Index == 0);
+            item ??= new SyncQueueItem()
+            {
+                EntityType = EntityType.Master,
+                Index = 0,
+            };
+
+            item.SyncAt = DateTimeOffset.UtcNow;
+
+            await db.InsertOrReplaceAsync(item).ConfigureAwait(false);
+            logger.LogTrace("Sync for {EntityType} #{Index} rescheduled (min = {Min}, retries = {Count}).", item.EntityType, item.Index, item.MinLastSync, item.RetryCount);
         }
     }
 }

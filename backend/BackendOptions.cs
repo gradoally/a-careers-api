@@ -10,7 +10,7 @@
 
         public TimeSpan SearchCacheForceReloadInterval { get; set; } = TimeSpan.FromMinutes(5);
 
-        public TimeSpan MasterResyncInterval { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan MasterSyncInterval { get; set; } = TimeSpan.FromSeconds(10);
 
         public TimeSpan AdminForceResyncInterval { get; set; } = TimeSpan.FromDays(1);
 

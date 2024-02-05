@@ -186,6 +186,13 @@ namespace SomeDAO.Backend.Services
             }
         }
 
+        public async Task EnsureSynced()
+        {
+            await tonClient.InitIfNeeded().ConfigureAwait(false);
+            await tonClient.Sync().ConfigureAwait(false);
+            logger.LogDebug("Synced to masterchain block {Seqno}.", tonClient.SyncStateCurrentSeqno);
+        }
+
         public async Task<bool> UpdateAdmin(Admin value)
         {
             await tonClient.InitIfNeeded().ConfigureAwait(false);
@@ -458,6 +465,65 @@ namespace SomeDAO.Backend.Services
                     start = res.PreviousTransactionId;
                 }
             }
+        }
+
+        public async Task<(DateTimeOffset syncTime, string hash, long nextAdminIndex, long nextUserIndex, long nextOrderIndex)> ParseMasterData(string address)
+        {
+            await tonClient.InitIfNeeded().ConfigureAwait(false);
+
+            var state = await tonClient.RawGetAccountState(address).ConfigureAwait(false);
+
+            var dataHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(state.Data)));
+
+            var slice = Boc.ParseFromBase64(state.Data).RootCells[0].BeginRead();
+
+            slice.SkipRef(); // contract codes
+
+            var indexes = slice.LoadRef().BeginRead();
+            var nextOrder = indexes.LoadLong();
+            var nextUser = indexes.LoadLong();
+            var nextAdmin = indexes.LoadLong();
+
+            return (state.SyncUtime, dataHash, nextAdmin, nextUser, nextOrder);
+        }
+
+        public IAsyncEnumerable<string> EnumerateAdminAddresses(string masterAddress, long fromIndex, long toIndex)
+        {
+            return EnumerateChildAddresses(masterAddress, "get_admin_address", fromIndex, toIndex);
+        }
+
+        public IAsyncEnumerable<string> EnumerateUserAddresses(string masterAddress, long fromIndex, long toIndex)
+        {
+            return EnumerateChildAddresses(masterAddress, "get_user_address", fromIndex, toIndex);
+        }
+
+        public IAsyncEnumerable<string> EnumerateOrderAddresses(string masterAddress, long fromIndex, long toIndex)
+        {
+            return EnumerateChildAddresses(masterAddress, "get_order_address", fromIndex, toIndex);
+        }
+
+        private async IAsyncEnumerable<string> EnumerateChildAddresses(string masterAddress, string methodName, long fromIndex, long toIndex)
+        {
+            await tonClient.InitIfNeeded().ConfigureAwait(false);
+
+            var smc = await tonClient.SmcLoad(masterAddress).ConfigureAwait(false);
+
+            while (fromIndex < toIndex)
+            {
+                var args = new List<TonLibDotNet.Types.Tvm.StackEntry>()
+                {
+                    new TonLibDotNet.Types.Tvm.StackEntryNumber(new TonLibDotNet.Types.Tvm.NumberDecimal(fromIndex)),
+                };
+
+                var resp = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName(methodName), args).ConfigureAwait(false);
+
+                var adr = resp.Stack[0].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(true);
+                yield return adr;
+
+                fromIndex++;
+            }
+
+            await tonClient.SmcForget(smc.Id);
         }
     }
 }

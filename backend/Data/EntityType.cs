@@ -7,5 +7,7 @@
         User = 1,
 
         Admin = 2,
+
+        Master = 3,
     }
 }

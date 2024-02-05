@@ -46,13 +46,10 @@ namespace SomeDAO.Backend
             services.AddScoped<SyncSchedulerService>();
 
             services.AddTask<DevInitService>(o => o.AutoStart(DevInitService.Interval, TimeSpan.FromSeconds(4)));
-            //services.AddTask<NewOrdersDetector>(o => o.AutoStart(bo.NewOrdersDetectorInterval));
-            //services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
-            //services.AddTask<MasterTxTrackerService>(o => o.AutoStart(bo.MasterTxTrackingInterval));
-            //services.AddTask<OrderUpdateChecker>(o => o.AutoStart(bo.OrderUpdateCheckerInterval));
             services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
             services.AddTask<SyncTask>(o => o.AutoStart(SyncTask.Interval, TimeSpan.FromSeconds(5)));
             services.AddTask<ForceResyncTask>(o => o.AutoStart(ForceResyncTask.Interval));
+            services.AddTask<MasterTrackerTask>(o => o.AutoStart(bo.MasterSyncInterval));
 
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
@@ -82,13 +79,10 @@ namespace SomeDAO.Backend
 
             RegisteredTasks = new List<Type>
                 {
-                    //typeof(ITask<NewOrdersDetector>),
-                    //typeof(ITask<CollectionTxTrackerService>),
-                    //typeof(ITask<MasterTxTrackerService>),
-                    //typeof(ITask<OrderUpdateChecker>),
                     typeof(ITask<CachedData>),
                     typeof(ITask<SyncTask>),
                     typeof(ITask<ForceResyncTask>),
+                    typeof(ITask<MasterTrackerTask>),
                 }
                 .AsReadOnly();
         }

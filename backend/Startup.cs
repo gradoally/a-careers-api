@@ -45,7 +45,6 @@ namespace SomeDAO.Backend
             services.AddSingleton<CachedData>();
             services.AddScoped<SyncSchedulerService>();
 
-            services.AddTask<DevInitService>(o => o.AutoStart(DevInitService.Interval, TimeSpan.FromSeconds(4)));
             services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
             services.AddTask<SyncTask>(o => o.AutoStart(SyncTask.Interval, TimeSpan.FromSeconds(5)));
             services.AddTask<ForceResyncTask>(o => o.AutoStart(ForceResyncTask.Interval));

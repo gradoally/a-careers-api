@@ -9,6 +9,7 @@
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.DependencyInjection;
+    using SomeDAO.Backend.Data;
     using SomeDAO.Backend.Services;
 
     public class HealthMiddleware
@@ -107,10 +108,19 @@
 
             yield return ("Your IP", context.Connection.RemoteIpAddress?.ToString() ?? "-unknown-");
 
+            static (string key, string text) describeEntities(string code, IEnumerable<IBlockchainEntity> items)
+            {
+                var count = items.Count();
+                var text = count == 0
+                    ? "no entities"
+                    : $"total {count}, min sync {items.Min(x => x.LastSync):u}, max sync {items.Max(x => x.LastSync):u}";
+                return ($"Entity {code}", text);
+            }
+
             var cd = context.RequestServices.GetRequiredService<CachedData>();
-            yield return ("Entity A", $"total {cd.AllAdmins.Count}, min sync {cd.AllAdmins.Min(x => x.LastSync).ToString("u")}, max sync {cd.AllAdmins.Max(x => x.LastSync).ToString("u")}");
-            yield return ("Entity U", $"total {cd.AllUsers.Count}, min sync {cd.AllUsers.Min(x => x.LastSync).ToString("u")}, max sync {cd.AllUsers.Max(x => x.LastSync).ToString("u")}");
-            yield return ("Entity O", $"total {cd.AllOrders.Count}, min sync {cd.AllOrders.Min(x => x.LastSync).ToString("u")}, max sync {cd.AllOrders.Max(x => x.LastSync).ToString("u")}");
+            yield return describeEntities("A", cd.AllAdmins);
+            yield return describeEntities("U", cd.AllUsers);
+            yield return describeEntities("O", cd.AllOrders);
 
             foreach (var taskType in Startup.RegisteredTasks)
             {

@@ -12,16 +12,14 @@ namespace SomeDAO.Backend.Services
         private const int MaxBatch = 100;
 
         private readonly ILogger logger;
-        private readonly BackendOptions backendOptions;
         private readonly IDbProvider dbProvider;
         private readonly DataParser dataParser;
         private readonly SyncSchedulerService syncScheduler;
         private readonly ITask cachedDataTask;
 
-        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, IOptions<BackendOptions> options, DataParser dataParser, SyncSchedulerService syncScheduler, ITask<CachedData> cachedDataTask)
+        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, DataParser dataParser, SyncSchedulerService syncScheduler, ITask<CachedData> cachedDataTask)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            this.backendOptions = options?.Value ?? throw new ArgumentNullException(nameof(options));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             this.dataParser = dataParser ?? throw new ArgumentNullException(nameof(dataParser));
             this.syncScheduler = syncScheduler ?? throw new ArgumentNullException(nameof(syncScheduler));
@@ -167,20 +165,22 @@ namespace SomeDAO.Backend.Services
 
         protected async Task<DateTimeOffset> SyncMaster()
         {
-            var md = await dataParser.ParseMasterData(backendOptions.MasterAddress);
-
             var db = dbProvider.MainDb;
+            var master = await db.FindAsync<Settings>(Settings.MASTER_ADDRESS).ConfigureAwait(false);
+            var masterAddress = master.StringValue!;
+
+            var md = await dataParser.ParseMasterData(masterAddress);
 
             // Create missing Admins
             var nextAdmin = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_ADMIN))?.LongValue ?? 0;
             if (nextAdmin < md.nextAdminIndex)
             {
-                await foreach (var adr in dataParser.EnumerateAdminAddresses(backendOptions.MasterAddress, nextAdmin, md.nextAdminIndex)) {
+                await foreach (var adr in dataParser.EnumerateAdminAddresses(masterAddress, nextAdmin, md.nextAdminIndex)) {
                     var entity = new Admin()
                     {
                         Index = 0,
                         Address = TonUtils.Address.SetBounceable(adr, true),
-                        AdminAddress = backendOptions.MasterAddress,
+                        AdminAddress = masterAddress,
                     };
                     await db.InsertAsync(entity).ConfigureAwait(false);
                     await syncScheduler.Schedule(entity);
@@ -194,12 +194,12 @@ namespace SomeDAO.Backend.Services
             var nextUser = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_USER))?.LongValue ?? 0;
             if (nextUser < md.nextUserIndex)
             {
-                await foreach (var adr in dataParser.EnumerateUserAddresses(backendOptions.MasterAddress, nextUser, md.nextUserIndex)) {
+                await foreach (var adr in dataParser.EnumerateUserAddresses(masterAddress, nextUser, md.nextUserIndex)) {
                     var entity = new User()
                     {
                         Index = 0,
                         Address = TonUtils.Address.SetBounceable(adr, true),
-                        UserAddress = backendOptions.MasterAddress,
+                        UserAddress = masterAddress,
                     };
                     await db.InsertAsync(entity).ConfigureAwait(false);
                     await syncScheduler.Schedule(entity);
@@ -213,12 +213,12 @@ namespace SomeDAO.Backend.Services
             var nextOrder = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_ORDER))?.LongValue ?? 0;
             if (nextOrder < md.nextOrderIndex)
             {
-                await foreach (var adr in dataParser.EnumerateOrderAddresses(backendOptions.MasterAddress, nextOrder, md.nextOrderIndex)) {
+                await foreach (var adr in dataParser.EnumerateOrderAddresses(masterAddress, nextOrder, md.nextOrderIndex)) {
                     var entity = new Order()
                     {
                         Index = 0,
                         Address = TonUtils.Address.SetBounceable(adr, true),
-                        CustomerAddress = backendOptions.MasterAddress,
+                        CustomerAddress = masterAddress,
                     };
                     await db.InsertAsync(entity).ConfigureAwait(false);
                     await syncScheduler.Schedule(entity);

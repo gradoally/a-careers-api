@@ -10,12 +10,10 @@ namespace SomeDAO.Backend.Services
         public const string OrderDesc = "desc";
 
         private readonly ILogger logger;
-        private readonly BackendOptions options;
 
-        public CachedData(ILogger<CachedData> logger, IOptions<BackendOptions> options)
+        public CachedData(ILogger<CachedData> logger)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         }
 
         public List<Admin> AllAdmins { get; private set; } = new();

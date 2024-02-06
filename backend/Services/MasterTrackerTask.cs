@@ -10,7 +10,6 @@ namespace SomeDAO.Backend.Services
     public class MasterTrackerTask : IRunnable
     {
         private readonly ILogger logger;
-        private readonly BackendOptions options;
         private readonly ITonClient tonClient;
         private readonly IDbProvider dbProvider;
         private readonly SyncSchedulerService syncScheduler;
@@ -18,10 +17,9 @@ namespace SomeDAO.Backend.Services
         private readonly DataParser dataParser;
         private readonly ITask syncTask;
 
-        public MasterTrackerTask(ILogger<MasterTrackerTask> logger, IOptions<BackendOptions> options, ITonClient tonClient, IDbProvider dbProvider, SyncSchedulerService syncScheduler, CachedData cachedData, DataParser dataParser, ITask<SyncTask> syncTask)
+        public MasterTrackerTask(ILogger<MasterTrackerTask> logger, ITonClient tonClient, IDbProvider dbProvider, SyncSchedulerService syncScheduler, CachedData cachedData, DataParser dataParser, ITask<SyncTask> syncTask)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
             this.tonClient = tonClient ?? throw new ArgumentNullException(nameof(tonClient));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             this.syncScheduler = syncScheduler ?? throw new ArgumentNullException(nameof(syncScheduler));
@@ -34,7 +32,9 @@ namespace SomeDAO.Backend.Services
         {
             await tonClient.InitIfNeeded().ConfigureAwait(false);
 
-            var state = await tonClient.RawGetAccountState(options.MasterAddress).ConfigureAwait(false);
+            var masterAddress = await dbProvider.MainDb.FindAsync<Settings>(Settings.MASTER_ADDRESS).ConfigureAwait(false);
+
+            var state = await tonClient.RawGetAccountState(masterAddress.StringValue!).ConfigureAwait(false);
 
             var dataHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(state.Data)));
             var storedHash = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_MASTER_DATA_HASH).ConfigureAwait(false);
@@ -53,7 +53,7 @@ namespace SomeDAO.Backend.Services
             {
                 var found = 0;
                 var start = new TransactionId() { Lt = state.LastTransactionId.Lt, Hash = state.LastTransactionId.Hash };
-                await foreach (var tx in dataParser.EnumerateTransactions(options.MasterAddress, start, endLt?.LongValue ?? 0))
+                await foreach (var tx in dataParser.EnumerateTransactions(masterAddress.StringValue!, start, endLt?.LongValue ?? 0))
                 {
                     IEnumerable<AccountAddress> arr = new[] { tx.InMsg!.Source };
                     if (tx.OutMsgs != null)

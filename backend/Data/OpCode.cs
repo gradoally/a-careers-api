@@ -10,6 +10,7 @@
 	{
 		Unknown = 0,
 
+        InitOrder = 15,
         ActivateOrder = 1,
         AddResponse = 2,
         AssignUser = 3,
@@ -24,5 +25,6 @@
         SetAdmins = 17,
         OrderCompleted = 20,
         OrderCompletedNotification = 21,
+        MasterLog = 239,
     }
 }

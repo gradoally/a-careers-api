@@ -403,6 +403,7 @@ namespace SomeDAO.Backend.Services
 
                 var role = op switch
                 {
+                    OpCode.InitOrder => OrderActivitySenderRole.Customer,
                     OpCode.AssignUser => OrderActivitySenderRole.Customer,
                     OpCode.AcceptOrder => OrderActivitySenderRole.Freelancer,
                     OpCode.RejectOrder => OrderActivitySenderRole.Freelancer,
@@ -414,7 +415,10 @@ namespace SomeDAO.Backend.Services
                     _ => OrderActivitySenderRole.Unspecified,
                 };
 
-                // TODO: Detect contract deployment and update Order.CreatedAt
+                if (op == OpCode.InitOrder)
+                {
+                    order.CreatedAt = tx.Utime;
+                }
 
                 var bounceable = role == OrderActivitySenderRole.Customer || role == OrderActivitySenderRole.Freelancer ? false : true;
 

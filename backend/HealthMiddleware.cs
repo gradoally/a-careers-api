@@ -9,6 +9,7 @@
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.DependencyInjection;
+    using SomeDAO.Backend.Services;
 
     public class HealthMiddleware
     {
@@ -106,6 +107,11 @@
 
             yield return ("Your IP", context.Connection.RemoteIpAddress?.ToString() ?? "-unknown-");
 
+            var cd = context.RequestServices.GetRequiredService<CachedData>();
+            yield return ("Entity A", $"total {cd.AllAdmins.Count}, min sync {cd.AllAdmins.Min(x => x.LastSync).ToString("u")}, max sync {cd.AllAdmins.Max(x => x.LastSync).ToString("u")}");
+            yield return ("Entity U", $"total {cd.AllUsers.Count}, min sync {cd.AllUsers.Min(x => x.LastSync).ToString("u")}, max sync {cd.AllUsers.Max(x => x.LastSync).ToString("u")}");
+            yield return ("Entity O", $"total {cd.AllOrders.Count}, min sync {cd.AllOrders.Min(x => x.LastSync).ToString("u")}, max sync {cd.AllOrders.Max(x => x.LastSync).ToString("u")}");
+
             foreach (var taskType in Startup.RegisteredTasks)
             {
                 var name = taskType.GenericTypeArguments[0].Name;
@@ -113,9 +119,7 @@
                 if (task.RunStatus.LastSuccessTime.Add(task.Options.Interval).Add(task.Options.Interval) < DateTimeOffset.Now)
                 {
                     allOk = false;
-                    yield return (name + " last run", task.RunStatus.LastRunTime.UtcDateTime.ToString("u", CultureInfo.InvariantCulture));
-                    yield return (name + " last success", task.RunStatus.LastSuccessTime.UtcDateTime.ToString("u", CultureInfo.InvariantCulture));
-                    yield return (name + " last exception", task.RunStatus.LastException?.GetType().Name ?? "None");
+                    yield return (name, $"failed with {task.RunStatus.LastException?.GetType().Name}, last success {task.RunStatus.LastSuccessTime.UtcDateTime.ToString("u", CultureInfo.InvariantCulture)}");
                 }
                 else
                 {

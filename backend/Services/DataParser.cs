@@ -365,7 +365,15 @@ namespace SomeDAO.Backend.Services
             var start = new TransactionId() { Lt = order.LastTxLt, Hash = order.LastTxHash! };
             await foreach (var tx in EnumerateTransactions(order.Address, start, endLt))
             {
-                // TODO: Skip non-successful transactions
+                var txboc = Boc.ParseFromBase64(tx.Data);
+                var btx = new TonLibDotNet.BlocksTlb.Transaction(txboc.RootCells[0].BeginRead());
+                var successful = btx.Description is TonLibDotNet.BlocksTlb.TransactionDescr.Ord to && !to.Aborted;
+
+                if (!successful)
+                {
+                    logger.LogDebug("Tx for Order {Address} ignored: not successful at {Time} ({Lt}:{Hash})", order.Address, tx.Utime, tx.TransactionId.Lt, tx.TransactionId.Hash);
+                    continue;
+                }
 
                 if (tx.InMsg == null)
                 {

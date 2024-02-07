@@ -47,7 +47,7 @@
 
             writer.WriteLine("<html><body><h1>Health check page</h1><dl>");
 
-            foreach (var value in GetValues(context))
+            await foreach (var value in GetValues(context))
             {
                 writer.WriteLine("<dt>" + value.key + "</dt><dd>" + value.value + "</dd>");
             }
@@ -70,7 +70,7 @@
             using var writer = new Utf8JsonWriter(stream);
 
             writer.WriteStartObject();
-            foreach (var value in GetValues(context))
+            await foreach (var value in GetValues(context))
             {
                 writer.WritePropertyName(value.key);
                 JsonSerializer.Serialize(writer, value.value, value.value.GetType());
@@ -83,7 +83,7 @@
             await stream.CopyToAsync(response.Body).ConfigureAwait(false);
         }
 
-        private IEnumerable<(string key, object value)> GetValues(HttpContext context)
+        private async IAsyncEnumerable<(string key, object value)> GetValues(HttpContext context)
         {
             var allOk = true;
 
@@ -121,6 +121,18 @@
             yield return describeEntities("A", cd.AllAdmins);
             yield return describeEntities("U", cd.AllUsers);
             yield return describeEntities("O", cd.AllOrders);
+
+            var dbProvider = context.RequestServices.GetRequiredService<IDbProvider>();
+            var lastSeqno = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_SEQNO).ConfigureAwait(false);
+            if (lastSeqno == null || lastSeqno.LongValue == null || lastSeqno.LongValue == 0)
+            {
+                allOk = false;
+                yield return ("Masterchain seqno", "0");
+            }
+            else
+            {
+                yield return ("Masterchain seqno", lastSeqno.LongValue.Value.ToString(CultureInfo.InvariantCulture));
+            }
 
             foreach (var taskType in Startup.RegisteredTasks)
             {

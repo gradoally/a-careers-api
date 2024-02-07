@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Options;
-using RecurrentTasks;
+﻿using RecurrentTasks;
 using SomeDAO.Backend.Data;
 using TonLibDotNet;
+using TonLibDotNet.Cells;
 using TonLibDotNet.Types;
 using TonLibDotNet.Types.Internal;
 
@@ -30,7 +30,9 @@ namespace SomeDAO.Backend.Services
 
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
-            await tonClient.InitIfNeeded().ConfigureAwait(false);
+            var lastSeqnoSetting = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_SEQNO).ConfigureAwait(false);
+            var newSeqno = await dataParser.EnsureSynced(lastSeqnoSetting?.LongValue ?? 0).ConfigureAwait(false);
+            await dbProvider.MainDb.InsertOrReplaceAsync(new Settings(Settings.LAST_SEQNO, newSeqno)).ConfigureAwait(false);
 
             var masterAddress = await dbProvider.MainDb.FindAsync<Settings>(Settings.MASTER_ADDRESS).ConfigureAwait(false);
 
@@ -55,6 +57,16 @@ namespace SomeDAO.Backend.Services
                 var start = new TransactionId() { Lt = state.LastTransactionId.Lt, Hash = state.LastTransactionId.Hash };
                 await foreach (var tx in dataParser.EnumerateTransactions(masterAddress.StringValue!, start, endLt?.LongValue ?? 0))
                 {
+                    var txboc = Boc.ParseFromBase64(tx.Data);
+                    var btx = new TonLibDotNet.BlocksTlb.Transaction(txboc.RootCells[0].BeginRead());
+                    var successful = btx.Description is TonLibDotNet.BlocksTlb.TransactionDescr.Ord to && !to.Aborted;
+
+                    if (!successful)
+                    {
+                        logger.LogDebug("Tx for Master ignored: not successful at {Time} ({Lt}:{Hash})", tx.Utime, tx.TransactionId.Lt, tx.TransactionId.Hash);
+                        continue;
+                    }
+
                     IEnumerable<AccountAddress> arr = new[] { tx.InMsg!.Source };
                     if (tx.OutMsgs != null)
                     {

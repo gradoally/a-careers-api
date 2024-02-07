@@ -19,7 +19,7 @@
     <PackageReference Include="sqlite-net-pcl" Version="1.8.116" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.5.0" />
-    <PackageReference Include="TonLib.Net" Version="0.21.0" />
+    <PackageReference Include="TonLib.Net" Version="0.21.1" />
   </ItemGroup>
 
   <ItemGroup>

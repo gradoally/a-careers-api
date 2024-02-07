@@ -186,11 +186,19 @@ namespace SomeDAO.Backend.Services
             }
         }
 
-        public async Task EnsureSynced()
+        public async Task<long> EnsureSynced(long lastKnownSeqno = 0)
         {
             await tonClient.InitIfNeeded().ConfigureAwait(false);
-            await tonClient.Sync().ConfigureAwait(false);
-            logger.LogDebug("Synced to masterchain block {Seqno}.", tonClient.SyncStateCurrentSeqno);
+            var blockId = await tonClient.Sync().ConfigureAwait(false);
+            logger.LogDebug("Synced to masterchain block {Seqno}.", blockId.Seqno);
+
+            if (blockId.Seqno < lastKnownSeqno)
+            {
+                tonClient.Deinit();
+                throw new SyncException($"Sync failed: seqno {blockId.Seqno} is less than last known {lastKnownSeqno}.");
+            }
+
+            return blockId.Seqno;
         }
 
         public async Task<bool> UpdateAdmin(Admin value)

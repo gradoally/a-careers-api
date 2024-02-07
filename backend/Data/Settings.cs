@@ -12,6 +12,7 @@ namespace SomeDAO.Backend.Data
         public const string NEXT_INDEX_USER = "NEXT_INDEX_USER";
         public const string NEXT_INDEX_ORDER = "NEXT_INDEX_ORDER";
         public const string IN_MAINNET = "IN_MAINNET";
+        public const string LAST_SEQNO = "LAST_SEQNO";
 
         [Obsolete("For data layer only")]
         public Settings()

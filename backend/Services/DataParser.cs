@@ -507,22 +507,22 @@ namespace SomeDAO.Backend.Services
             return (state.SyncUtime, dataHash, nextAdmin, nextUser, nextOrder);
         }
 
-        public IAsyncEnumerable<string> EnumerateAdminAddresses(string masterAddress, long fromIndex, long toIndex)
+        public IAsyncEnumerable<(long index, string address)> EnumerateAdminAddresses(string masterAddress, long fromIndex, long toIndex)
         {
             return EnumerateChildAddresses(masterAddress, "get_admin_address", fromIndex, toIndex);
         }
 
-        public IAsyncEnumerable<string> EnumerateUserAddresses(string masterAddress, long fromIndex, long toIndex)
+        public IAsyncEnumerable<(long index, string address)> EnumerateUserAddresses(string masterAddress, long fromIndex, long toIndex)
         {
             return EnumerateChildAddresses(masterAddress, "get_user_address", fromIndex, toIndex);
         }
 
-        public IAsyncEnumerable<string> EnumerateOrderAddresses(string masterAddress, long fromIndex, long toIndex)
+        public IAsyncEnumerable<(long index, string address)> EnumerateOrderAddresses(string masterAddress, long fromIndex, long toIndex)
         {
             return EnumerateChildAddresses(masterAddress, "get_order_address", fromIndex, toIndex);
         }
 
-        private async IAsyncEnumerable<string> EnumerateChildAddresses(string masterAddress, string methodName, long fromIndex, long toIndex)
+        private async IAsyncEnumerable<(long index, string address)> EnumerateChildAddresses(string masterAddress, string methodName, long fromIndex, long toIndex)
         {
             await tonClient.InitIfNeeded().ConfigureAwait(false);
 
@@ -538,7 +538,7 @@ namespace SomeDAO.Backend.Services
                 var resp = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName(methodName), args).ConfigureAwait(false);
 
                 var adr = resp.Stack[0].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(true);
-                yield return adr;
+                yield return (fromIndex, adr);
 
                 fromIndex++;
             }

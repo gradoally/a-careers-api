@@ -487,7 +487,7 @@ namespace SomeDAO.Backend.Services
             }
         }
 
-        public async Task<(DateTimeOffset syncTime, string hash, long nextAdminIndex, long nextUserIndex, long nextOrderIndex)> ParseMasterData(string address)
+        public async Task<(DateTimeOffset syncTime, string hash, long nextAdminIndex, long nextUserIndex, long nextOrderIndex, List<Category>? categories, List<Language>? languages)> ParseMasterData(string address)
         {
             await tonClient.InitIfNeeded().ConfigureAwait(false);
 
@@ -504,7 +504,27 @@ namespace SomeDAO.Backend.Services
             var nextUser = indexes.LoadLong();
             var nextAdmin = indexes.LoadLong();
 
-            return (state.SyncUtime, dataHash, nextAdmin, nextUser, nextOrder);
+            var categories = slice.TryLoadRef()?
+                .ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)).ToLowerInvariant(), x => x)
+                .Select(x =>
+                {
+                    var active = x.Value.LoadBit();
+                    var name = x.Value.LoadRef().BeginRead().LoadStringSnake(true);
+                    return new Category
+                    {
+                        Hash = x.Key,
+                        Name = name ?? "???",
+                        IsActive = active,
+                    };
+                })
+                .ToList();
+
+            var languages = slice.TryLoadRef()?
+                .ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)).ToLowerInvariant(), x => x.LoadStringSnake(true))
+                .Select(x => new Language() { Hash = x.Key, Name = x.Value ?? "???" })
+                .ToList();
+
+            return (state.SyncUtime, dataHash, nextAdmin, nextUser, nextOrder, categories, languages);
         }
 
         public IAsyncEnumerable<(long index, string address)> EnumerateAdminAddresses(string masterAddress, long fromIndex, long toIndex)

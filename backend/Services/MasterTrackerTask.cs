@@ -46,7 +46,7 @@ namespace SomeDAO.Backend.Services
             if (dataHash != storedHash?.StringValue)
             {
                 await syncScheduler.ScheduleMaster().ConfigureAwait(false);
-                logger.LogDebug("Master data hash mismatch, sync queued (stored {Value}, actual {Value}).", storedHash, dataHash);
+                logger.LogDebug("Master data hash mismatch, sync queued (stored {Value}, actual {Value}).", storedHash?.StringValue, dataHash);
                 needSync = true;
             }
 

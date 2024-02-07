@@ -122,6 +122,9 @@
             yield return describeEntities("U", cd.AllUsers);
             yield return describeEntities("O", cd.AllOrders);
 
+            yield return ("Entity C", cd.AllCategories.Count);
+            yield return ("Entity L", cd.AllLanguages.Count);
+
             var dbProvider = context.RequestServices.GetRequiredService<IDbProvider>();
             var lastSeqno = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_SEQNO).ConfigureAwait(false);
             if (lastSeqno == null || lastSeqno.LongValue == null || lastSeqno.LongValue == 0)

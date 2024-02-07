@@ -17,9 +17,5 @@
         public TimeSpan UserForceResyncInterval { get; set; } = TimeSpan.FromDays(1);
 
         public TimeSpan OrderForceResyncInterval { get; set; } = TimeSpan.FromDays(1);
-
-        public Dictionary<string, string> Categories { get; set; } = new();
-
-        public Dictionary<string, string> Languages { get; set; } = new();
     }
 }

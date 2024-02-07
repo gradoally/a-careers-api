@@ -15,28 +15,18 @@ namespace SomeDAO.Backend.Api
     public class SearchController : ControllerBase
     {
         private readonly ILogger logger;
-        private readonly CachedData searchService;
+        private readonly CachedData cachedData;
         private readonly BackendConfig backendConfig;
 
         public SearchController(ILogger<SearchController> logger, CachedData searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            this.searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
+            this.cachedData = searchService ?? throw new ArgumentNullException(nameof(searchService));
             this.backendConfig = new BackendConfig
             {
                 MasterContractAddress = backendOptions.Value.MasterAddress,
                 Mainnet = tonOptions.Value.UseMainnet,
             };
-
-            backendConfig.Categories = backendOptions.Value.Categories
-                .Select(x => new BackendConfig.KeyCodeValue(DataParser.GetSHA256OfStringAsHex(x.Key).ToLowerInvariant(), x.Key, x.Value))
-                .OrderBy(x => x.Value)
-                .ToList();
-
-            backendConfig.Languages = backendOptions.Value.Languages
-                .Select(x => new BackendConfig.KeyCodeValue(DataParser.GetSHA256OfStringAsHex(x.Key).ToLowerInvariant(), x.Key, x.Value))
-                .OrderBy(x => x.Code)
-                .ToList();
         }
 
         /// <summary>
@@ -45,6 +35,8 @@ namespace SomeDAO.Backend.Api
         [HttpGet]
         public ActionResult<BackendConfig> Config()
         {
+            backendConfig.Categories = cachedData.AllCategories;
+            backendConfig.Languages = cachedData.AllLanguages;
             return backendConfig;
         }
 
@@ -166,7 +158,7 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
-            var user = searchService.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, address));
+            var user = cachedData.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, address));
             return new FindResult<User>(user);
         }
 
@@ -178,7 +170,7 @@ namespace SomeDAO.Backend.Api
         [HttpGet]
         public ActionResult<User> GetUser(long index)
         {
-            var user = searchService.AllUsers.Find(x => x.Index == index);
+            var user = cachedData.AllUsers.Find(x => x.Index == index);
 
             if (user == null)
             {
@@ -197,7 +189,7 @@ namespace SomeDAO.Backend.Api
         [HttpGet]
         public ActionResult<Order> GetOrder(long index)
         {
-            var order = searchService.AllOrders.Find(x => x.Index == index);
+            var order = cachedData.AllOrders.Find(x => x.Index == index);
 
             if (order == null)
             {
@@ -231,7 +223,7 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
-            var order = searchService.AllOrders.Find(x => StringComparer.Ordinal.Equals(x.Address, address));
+            var order = cachedData.AllOrders.Find(x => StringComparer.Ordinal.Equals(x.Address, address));
             return new FindResult<Order>(order);
         }
 
@@ -244,7 +236,7 @@ namespace SomeDAO.Backend.Api
         [HttpGet]
         public ActionResult<UserStat> GetUserStats(long index)
         {
-            var user = searchService.AllUsers.Find(x => x.Index == index);
+            var user = cachedData.AllUsers.Find(x => x.Index == index);
 
             if (user == null)
             {
@@ -252,8 +244,8 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
-            var asCustomer = searchService.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress));
-            var asFreelancer = searchService.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
+            var asCustomer = cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress));
+            var asFreelancer = cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
 
             var res = new UserStat()
             {
@@ -295,7 +287,7 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
-            var user = searchService.AllUsers.Find(x => x.Index == index);
+            var user = cachedData.AllUsers.Find(x => x.Index == index);
 
             if (user == null)
             {
@@ -304,8 +296,8 @@ namespace SomeDAO.Backend.Api
             }
 
             var query = mode == 1
-                ? searchService.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress))
-                : searchService.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
+                ? cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress))
+                : cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
 
             var list = query.Where(x => x.Status == (OrderStatus)status).ToList();
 
@@ -326,7 +318,7 @@ namespace SomeDAO.Backend.Api
             int page = 0,
             int pageSize = 10)
         {
-            var user = searchService.AllUsers.Find(x => x.Index == index);
+            var user = cachedData.AllUsers.Find(x => x.Index == index);
 
             if (user == null)
             {
@@ -334,7 +326,7 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
-            var allOrders = searchService.AllOrders;
+            var allOrders = cachedData.AllOrders;
             var list = await dbProvider.MainDb.Table<OrderActivity>()
                 .Where(x => x.SenderAddress == user.UserAddress)
                 .OrderByDescending(x => x.Timestamp)
@@ -364,7 +356,7 @@ namespace SomeDAO.Backend.Api
             int page = 0,
             int pageSize = 10)
         {
-            var order = searchService.AllOrders.Find(x => x.Index == index);
+            var order = cachedData.AllOrders.Find(x => x.Index == index);
 
             if (order == null)
             {
@@ -372,7 +364,7 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
-            var allUsers = searchService.AllUsers;
+            var allUsers = cachedData.AllUsers;
             var list = await dbProvider.MainDb.Table<OrderActivity>()
                 .Where(x => x.OrderId == order.Id)
                 .OrderByDescending(x => x.Timestamp)
@@ -394,7 +386,7 @@ namespace SomeDAO.Backend.Api
             string? language,
             decimal? minPrice)
         {
-            var list = searchService.AllActiveOrders.AsEnumerable();
+            var list = cachedData.AllActiveOrders.AsEnumerable();
 
             if (!string.IsNullOrWhiteSpace(category))
             {
@@ -426,18 +418,9 @@ namespace SomeDAO.Backend.Api
 
             public bool Mainnet { get; set; }
 
-            public List<KeyCodeValue> Categories { get; set; } = new();
+            public List<Category> Categories { get; set; } = new();
 
-            public List<KeyCodeValue> Languages { get; set; } = new();
-
-            public class KeyCodeValue(string key, string code, string value)
-            {
-                public string Key { get; set; } = key;
-
-                public string Code { get; set; } = code;
-
-                public string Value { get; set; } = value;
-            }
+            public List<Language> Languages { get; set; } = new();
         }
 
         public class UserStat

@@ -228,9 +228,15 @@ namespace SomeDAO.Backend.Services
                 await db.InsertOrReplaceAsync(new Settings(Settings.NEXT_INDEX_ORDER, md.nextOrderIndex)).ConfigureAwait(false);
             }
 
-            // TODO: Sync Categories
+            // Recreate all categories
+            await db.Table<Category>().DeleteAsync(x => true).ConfigureAwait(false);
+            var catCount = await db.InsertAllAsync(md.categories).ConfigureAwait(false);
+            logger.LogDebug("Reloaded {Count} categories", catCount);
 
-            // TODO: Sync Languages
+            // Recreate all languages
+            await db.Table<Language>().DeleteAsync(x => true).ConfigureAwait(false);
+            var lanCount = await db.InsertAllAsync(md.languages).ConfigureAwait(false);
+            logger.LogDebug("Reloaded {Count} languages", lanCount);
 
             await db.InsertOrReplaceAsync(new Settings(Settings.LAST_MASTER_DATA_HASH, md.hash)).ConfigureAwait(false);
 

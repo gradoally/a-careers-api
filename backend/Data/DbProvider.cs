@@ -54,6 +54,8 @@ namespace SomeDAO.Backend.Data
             await conn.CreateTableAsync<Order>().ConfigureAwait(false);
             await conn.CreateTableAsync<SyncQueueItem>().ConfigureAwait(false);
             await conn.CreateTableAsync<OrderActivity>().ConfigureAwait(false);
+            await conn.CreateTableAsync<Category>().ConfigureAwait(false);
+            await conn.CreateTableAsync<Language>().ConfigureAwait(false);
 
             await UpdateDb(conn).ConfigureAwait(false);
 

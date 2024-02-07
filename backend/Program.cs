@@ -49,7 +49,7 @@ namespace SomeDAO.Backend
                     await db.MainDb.InsertAsync(mnet).ConfigureAwait(false);
                     logger.LogInformation("Net type enabled: {Value}", mainnet ? "MAINnet" : "TESTnet");
                 }
-                else if (adr.BoolValue != mainnet)
+                else if (mnet.BoolValue != mainnet)
                 {
                     logger.LogError("Net type mismatch: saved {Address}, configured {Address}. Erase db to start with new net type!", mnet.BoolValue!.Value ? "MAINnet" : "TESTnet", mainnet ? "MAINnet" : "TESTnet");
                     throw new InvalidOperationException("Net type changed");

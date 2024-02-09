@@ -9,10 +9,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
-		BlockchainRequirements.md = BlockchainRequirements.md
 		Deployment.md = Deployment.md
 		global.json = global.json
 		README.md = README.md
+		SmartContractRequirements.md = SmartContractRequirements.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "backend.tests", "backend.tests\backend.tests.csproj", "{92767B29-8913-4996-8179-4C8683CA766B}"

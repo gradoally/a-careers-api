@@ -1,41 +1,41 @@
-Установка (на примере Ubuntu)
+Deployment (using Ubuntu)
 =============================
 
 
-Необходимые пакеты
+Prerequisites
 ----------------------------
 
-* Установить [**Microsoft .NET 6.0**](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) согласно [инструкции на сайте](https://learn.microsoft.com/ru-ru/dotnet/core/install/linux-ubuntu). Более старшие версии (7.0 и 8.0 должны работать, но не проверялись: 7.0 не имеет long-term support, а 8.0 ещё не релизнута).
-* Установить [NGINX](https://nginx.org/) и [certbot](https://www.nginx.com/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/) согласно их инструкциям.
+* Install [**Microsoft .NET 8.0 (SDK)**](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) using [official manual](https://learn.microsoft.com/ru-ru/dotnet/core/install/linux-ubuntu).
+* Install [NGINX](https://nginx.org/) and [certbot](https://www.nginx.com/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/) according to their manuals.
 
 
-Развертывание приложения
+Installing application
 -------------------------------------------
 
-* Клонировать Git-репо в какую-либо папку на диске (например `/home/somebackend`).
-* Самотестирование:
-    * Перейти в папку `/home/somebackend`
-    * Запустить (выполнить) команду `dotnet test`
-    * Через 1-2 мин работа должна закончиться зеленой строкой вида: `Passed!  - Failed: 0, Passed: 2, Skipped: 0, Total: 2, Duration: Х ms - backend.tests.dll (net6.0)`
-* Перейти в папку `/home/somebackend/backoffice`
-* Отредактировать `appsettings.json` (указать адрес коллекции и адрес мастер-контракта, при необходимости исправить пути или другие параметры)
-* Собрать приложение командой `dotnet publish -c Release -o /var/www/somebackend`, где после `-o` нужно указать целевую папку, откуда будет впоследствии производиться запуск.
-* Скачать [библиотеку tonlib](https://github.com/ton-blockchain/ton/releases) в папку запуска:
+* Clone Git-repo to local folder (for example, to `/home/somebackend`).
+* Self test:
+    * Go to `/home/somebackend` folder
+    * Runs `dotnet test`
+    * In 1-2 minutes it should finish with green text like: `Passed!  - Failed: 0, Passed: 3, Skipped: 0, Total: 3, Duration: Х ms - backend.tests.dll (net8.0)`
+* Go to `/home/somebackend/backoffice`
+* Edit `appsettings.json` (put master contract address into MasterAddress, change other params if required)
+* Build application using `dotnet publish -c Release -o /var/www/somebackend`, where folder after `-o` is target folder you want to run app from.
+* Download [tonlib library](https://github.com/ton-blockchain/ton/releases) into app folder:
     ```
-    wget https://github.com/ton-blockchain/ton/releases/download/v2023.06/tonlibjson-linux-x86_64.so -o /var/www/somebackend
+    wget https://github.com/ton-blockchain/ton/releases/download/v2024.01/tonlibjson-linux-x86_64.so -o /var/www/somebackend
     ```
-    При этом следует выбрать правильный файл для текущей архитектуры процессора (`tonlibjson-linux-arm64.so` или `tonlibjson-linux-x86_64.so`).
-* Создать служебный каталог и дать на него права на запись: `mkdir /var/www/somebackend/cache & chmod 777 /var/www/somebackend/cache` (данный каталог служит для хранения данных о синхронизации с блокчейном, о Merkle-проверенных данных с лайтсервера);
+    Make sure you choose correct architecture (`tonlibjson-linux-arm64.so` or `tonlibjson-linux-x86_64.so`) that matches your system.
+* Create cache folder and set correct permissions: `mkdir /var/www/somebackend/cache & chmod 777 /var/www/somebackend/cache` (this folder will be used to store blockchain sync data, Merkle proofs etc);
 
-На данном этапе приложение можно запустить выполнив `/var/www/somebackend/backend` - на экране появится много текста, можно будет различить сообщения о найденных NFT и периодическим опросе tonapi. Не должно быть красного текста, свидетельствующего об ошибках.
+Now, you can run the app. Execute `/var/www/somebackend/backend` - it will show different logs on screen, including detecting existing admin/user/order contracts. Screen should not have red (error) text.
 
 
-Добавление в автозапуск и настройка доступа снаружи
+Configuring app for auto-start and external access
 ---------------------------------------------------
 
-### Автозапуск
+### Autostart
 
-Добавить приложение в автозапуск можно например [через systemd](https://learn.microsoft.com/ru-ru/troubleshoot/developer/webapps/aspnetcore/practice-troubleshoot-linux/2-3-configure-aspnet-core-application-start-automatically) используя такой файл описания сервиса:
+You may use [systemd](https://learn.microsoft.com/ru-ru/troubleshoot/developer/webapps/aspnetcore/practice-troubleshoot-linux/2-3-configure-aspnet-core-application-start-automatically) for starting ap as a service, using this example service description file:
 ```
 [Unit]
 Description=Some Backend
@@ -57,16 +57,18 @@ Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
 WantedBy=multi-user.target
 ```
 
-Пути в строках `WorkingDirectory` и `ExecStart` должен соответствовать параметру `-o` при выполнении шага `dotnet publish`.
+Please ensure values in `WorkingDirectory` и `ExecStart` matches parameter `-o` value during `dotnet publish`.
 
-Запуск/остановка сервиса: `sudo systemctl start somebackend` и `sudo systemctl stop somebackend`.
+Start/stop service: `sudo systemctl start somebackend` and `sudo systemctl stop somebackend`.
 
-Просмотр логов: `sudo journalctl -fu somebackend -n 100` (показать последние 100 записей и выводить новые по мере поступления).
+View logs: `sudo journalctl -fu somebackend -n 100` (show last 100 log entries and wait for new ones).
 
 
-### Доступ через Nginx
+### External access using Nginx
 
-Добавить сайт в Nginx можно используя такой файл описания сайта:
+You may configure backend to run on port 80 and expose this port directly, but using Nginx as reverse proxy will give you additional benefits, like HTTPS/SSL certificate management, additional header configuration etc.
+
+Use this sample config when creating new site in Nginx:
 ```
 server {
     listen 80;
@@ -87,13 +89,13 @@ server {
 }
 ```
 
-При этом в `server_name` нужно вписать ваше публичное DNS имя под которым будет работать система (не забудьте внести соответствующую A-запись в DNS).
+Please use real (external) domain name in `server_name` parameter (don't forget to update entry in tour DNS Zone).
 
-Номер порта в строке `proxy_pass` должен соответствовать номеру порта в параметре `Kestrel:Endpoints:Http:Url` в файле `appsettings.json`
+Port number in `proxy_pass` parameter should math one in `Kestrel:Endpoints:Http:Url` in `appsettings.json` configuration file.
 
-С помощью команды `certbot` нужно сделать бесплатный SSL-сертификат (не забудьте разрешить ему внести изменения в описание сайта Nginx, он добавит туда информацию об SSL).
+Use `certbot` to create free SSL-certificate and update it automatically.
 
 
-### Установка завершена
+### Installation complete
 
-Установка завершена. Теперь можно открыть https://somebackend.example.com/swagger в браузере - должна отобразиться страница Swagger-а.
+Done. Now open https://somebackend.example.com/swagger in your browser - you should see Swagger page.

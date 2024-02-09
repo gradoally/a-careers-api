@@ -1,59 +1,63 @@
 ﻿Some DAO Backend
 ================
 
-Бэкенд для web3-системы на базе блокчейна TON. Хранит информацию об NFT-айтемах коллекции в локальной БД, предоставляет возможность поиска по базе для фронтенда. Оперативно обновляет информацию в БД при изменении данных в блокчейне.
+Backend service for web3 Freelance application based on TON blockchain.
+
+Parses information from smart-contracts, stores data in local DB, and provides this data to frontend in various forms. Local DB updates automatically shortly after blockchain data changes.
+
+Public LiteServers are used, no REST/HTTP API is involved.
 
 
-Требования к смартконтрактам
+Smart contract requirements
 ----------------------------
 
-* Айтемы должны принадлежать строго одной коллекции (адрес коллекции задается в настройках);
-* Коллекция должна поддерживать методы `get_collection_data` и `get_nft_address_by_index` из стандарта [TEP-62](https://github.com/ton-blockchain/TEPs/blob/master/text/0062-nft-standard.md);
-* Индексация (нумерация) айтемов в коллекции должна быть последовательная;
-* Айтемы должны поддерживать методы `get_nft_data` и `get_nft_content` из TEP-62;
-* Айтемы должны возвращать результат `get_nft_content` вида **On-chain content layout** согласно [TEP-64](https://github.com/ton-blockchain/TEPs/blob/master/text/0064-token-data-standard.md)
-    * Поддерживаются следующие поля метаданных:
-        * `image`, `name`, `description`, `status`, `technical_assigment`, `category`, `customer_addr` - строковые, хранятся в формате **Snake format**; 
-        * `amount` - целое число, хранится как строка в формате **Snake format**; 
-        * `starting_unix_time`, `ending_unix_time`, `creation_unix_time` - целое число обозначающее Unix file time seconds, хранится как строка в формате **Snake format**; 
-* Изменение данных в айтемах должно сопровождаться транзакцией на фиксированном адресе (адрес прослушивается, появление транзакций будет инициировать обновление соотв. айтемов);
-
-Процедура обновления данных
----------------------------
-
-Используется одновременно несколько способов получения событий об айтемах:
-
-1. Периодический (параметр `NewOrdersDetectorInterval`, по умолчанию 15 мин) вызов метода коллекции `get_collection_data` для получения информации о новых сминченных айтемах (путем проверки next item index). 
-2. Периодический (параметр `CollectionTxTrackingInterval`, по умолчанию 30 секунд) просмотр новых транзакций на смартконтракте коллекции: 
-      * при обнаружении транзакций на новые (неизвестные) адреса вне очереди запускается метод (1) для проверки новых сминченных айтемов;
-      * при обнаружении транзакций на известные адреса (айтемов) запускается задача по их обновлению;
-3. Периодический (параметр `MasterTxTrackingInterval`, по умолчанию 10 секунд) просмотр новых транзакций на фиксированном мастер-адресе: 
-      * при обнаружении транзакций на известные адреса (айтемов) запускается задача по их обновлению;
+Please see [SmartContractRequirements.md](SmartContractRequirements.md).
 
 
-Настройки системы
+Local DB updates
 -----------------
 
-Для настройки используется файл `appsettings.json` в корне приложения. Каждая настройка имеет описание прямо внутри файла.
+Master smart contract is checked (every 10 seconds by default) for two reasons:
+* To detect new child contracts (Admin/User/Order) by comparing indexes of next contracts inside master data with saved in local DB. When mismatch is detected - addresses of new contracts are calculated via get_methods (using their index), stored in local DB and syncronized.
+* To detect changes in (child) Order contracts: every update of Order contract is followed by notification message to Master contract, so new transaction from known Order contract starts an urgent order update.
+ 
+Also, every child contract is force-synced every 24 hours (by default).
 
-**После изменения** файла настроек необходимо **перезапустить** приложение, чтобы измененный файл считался.
+In case of LiteServer failure (timeout, out-of-sync etc) update gets retried at increasing interval, from 5 seconds to several hours.
+      
+Deployment
+-----------
 
-Самыми главнымм являются параметры:
-  * `CollectionAddress` - адрес самой коллекции;
-  * `MasterAddress` - адрес мастер-контракта, через который проходят изменения в айтемах;
+Server prerequisites:
 
-⚠ Важно! Если меняется **адрес коллекции**, то помимо перезапуска необходимо **удалить файл базы данных** (`backend.sqlite`), чтобы стереть старые (неактуальные) айтемы!
+* [Microsoft **.NET 8.0**](https://dotnet.microsoft.com/en-us/download/dotnet/8.0), which is available Linux, Windows and macOS.
+* [**NGINX**](https://nginx.org/) is recommended for reverse-proxy role, for rate limiting (if needed) and to manage SSL certificate (free one from Let's Encrypt using [certbot](https://certbot.eff.org/) is Ok);
+* **SQLite** is used for local DB, it does not require any packages/install.
 
-ℹ Для облегчения последующих обновлений системы можно не менять исходный файл `appsettings.json`, а сделать рядом новый с именем `appsettings.Production.json` и скопировать туда только параметры с изменяемыми значениями (важно следить за вложенностью Json-структур!). Система будет считывать оба файла при старте, и возьмет сначала значения по умолчанию из исновного файла, а потом обновит необходимые значения считанными из второго файла.
+Deployment steps are described in [Deployment.md](Deployment.md).
 
 
-Требования к серверу, развертывание и запуск системы
-----------------------
+Configuration
+--------------
 
-Требования к серверу:
+All settings are stored in `appsettings.json` file in app root. File contains description for every setting.
 
-* Для работы необходим [**Microsoft .NET 6.0**](https://dotnet.microsoft.com/en-us/download/dotnet/6.0), который работает на Linux, Windows и macOS.
-* [NGINX](https://nginx.org/) рекомендуется в качестве реверс-прокси и для управления SSL сертификатом (например бесплатный  от Let's Encrypt через [certbot](https://certbot.eff.org/));
-* В качестве базы данных используется **SQLite**, который не требует какой-либо предварительной установки.
+After you **update** settings file - application **must be restarted** for new settings to become active!
 
-Порядок установки описан в файле [Deployment.md](Deployment.md). 
+The main and most important setting is **`MasterAddress`** - it stores TON address (EQ... or UQ...) of Master smart-contract.
+
+⚠ Important! When you change **master address** - you also need to **delete old database** file (backend.sqlite by default)! Application compares new and stored addresses during startup, and will refuse to start if mismatch is detected.
+
+ℹ To ensure smooth Git updates in the future, it's recommended to not change existing `appsettings.json` file. Instead, copy it to `appsettings.Production.json` (attention to uppercase **P**!) in the same folder and change settings in it. You may safely remove unchanged (unneeded) settings from new file - application reads both files during startup and takes value from `appsettings.json` if it's not exist in `appsettings.Production.json`. But please pay attention to Json hierarchy inside settings file!
+
+
+Monitoring
+-----------
+
+There is a special self-diagnosis page: `/health`.
+
+It contains some values, like app and host versions, local time, number of contracts and their min/max sync(update) time, last sync masterchain seqno, last timestamps of internal recurrent tasks etc.
+
+And this page contains last value `Healty` with ("yes" or "no" value), which is calculated dynamically depending of values of some previous parameters. For example, healty turns to "no" when internal task(s) fails for too long time.
+
+And when `healty` value is `yes`, a special code (`CVWFHB9EUTDMVDACGZUD`) follows. So you may use this code as a keyword for your monitoring software (e.g. Zabbix or HetrixTools). 

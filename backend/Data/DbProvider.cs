@@ -48,6 +48,8 @@ namespace SomeDAO.Backend.Data
             var conn = new SQLiteAsyncConnection(file);
             logger.LogInformation("Connected to {FilePath}", file);
 
+            await conn.ExecuteScalarAsync<string>("PRAGMA journal_mode=WAL");
+
             await conn.CreateTableAsync<Settings>().ConfigureAwait(false);
             await conn.CreateTableAsync<Admin>().ConfigureAwait(false);
             await conn.CreateTableAsync<User>().ConfigureAwait(false);

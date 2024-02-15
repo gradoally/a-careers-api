@@ -57,16 +57,6 @@ namespace SomeDAO.Backend.Services
                 var start = new TransactionId() { Lt = state.LastTransactionId.Lt, Hash = state.LastTransactionId.Hash };
                 await foreach (var tx in dataParser.EnumerateTransactions(masterAddress.StringValue!, start, endLt?.LongValue ?? 0))
                 {
-                    var txboc = Boc.ParseFromBase64(tx.Data);
-                    var btx = new TonLibDotNet.BlocksTlb.Transaction(txboc.RootCells[0].BeginRead());
-                    var successful = btx.Description is TonLibDotNet.BlocksTlb.TransactionDescr.Ord to && !to.Aborted;
-
-                    if (!successful)
-                    {
-                        logger.LogDebug("Tx for Master ignored: not successful at {Time} ({Lt}:{Hash})", tx.Utime, tx.TransactionId.Lt, tx.TransactionId.Hash);
-                        continue;
-                    }
-
                     IEnumerable<AccountAddress> arr = new[] { tx.InMsg!.Source };
                     if (tx.OutMsgs != null)
                     {

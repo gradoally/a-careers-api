@@ -1,26 +1,31 @@
 ﻿using RecurrentTasks;
+using SomeDAO.Backend.Data;
 using TonLibDotNet;
 
 namespace SomeDAO.Backend.Services
 {
-    public class ReinitTonClientTask : IRunnable
+    public class ReinitTask : IRunnable
     {
         public static readonly TimeSpan Interval = TimeSpan.FromHours(1);
 
         private readonly ILogger logger;
         private readonly ITonClient tonClient;
+        private readonly IDbProvider dbProvider;
 
-        public ReinitTonClientTask(ILogger<ReinitTonClientTask> logger, ITonClient tonClient)
+        public ReinitTask(ILogger<ReinitTask> logger, ITonClient tonClient, IDbProvider dbProvider)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.tonClient = tonClient ?? throw new ArgumentNullException(nameof(tonClient));
+            this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
         }
 
-        public Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
+        public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
             tonClient.Deinit();
             logger.LogDebug("TonClient de-inited");
-            return Task.CompletedTask;
+
+            await dbProvider.Reconnect();
+            logger.LogDebug("DbProvider reconnected");
         }
     }
 }

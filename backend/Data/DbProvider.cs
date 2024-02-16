@@ -5,6 +5,7 @@ namespace SomeDAO.Backend.Data
 {
     public class DbProvider : IDbProvider, IDisposable
     {
+        private readonly BackendOptions options;
         private readonly ILogger logger;
 
         private bool disposedValue;
@@ -18,10 +19,20 @@ namespace SomeDAO.Backend.Data
 
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            MainDb = GetMainDb(options.Value).GetAwaiter().GetResult();
+            this.options = options.Value;
+            MainDb = GetMainDb(this.options).GetAwaiter().GetResult();
         }
 
-        public SQLiteAsyncConnection MainDb { get; }
+        public SQLiteAsyncConnection MainDb { get; private set; }
+
+        public async Task Reconnect()
+        {
+            var olddb = MainDb;
+            MainDb = await GetMainDb(options).ConfigureAwait(false);
+            logger.LogDebug("Reconnected to DB");
+            await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            await olddb.CloseAsync().ConfigureAwait(false);
+        }
 
         public void Dispose()
         {

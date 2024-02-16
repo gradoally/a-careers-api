@@ -49,7 +49,7 @@ namespace SomeDAO.Backend
             services.AddTask<SyncTask>(o => o.AutoStart(SyncTask.Interval, TimeSpan.FromSeconds(5)));
             services.AddTask<ForceResyncTask>(o => o.AutoStart(ForceResyncTask.Interval));
             services.AddTask<MasterTrackerTask>(o => o.AutoStart(bo.MasterSyncInterval));
-            services.AddTask<ReinitTonClientTask>(o => o.AutoStart(ReinitTonClientTask.Interval, TimeSpan.FromSeconds(1)));
+            services.AddTask<ReinitTask>(o => o.AutoStart(ReinitTask.Interval, TimeSpan.FromSeconds(1)));
 
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
@@ -83,7 +83,7 @@ namespace SomeDAO.Backend
                     typeof(ITask<SyncTask>),
                     typeof(ITask<ForceResyncTask>),
                     typeof(ITask<MasterTrackerTask>),
-                    typeof(ITask<ReinitTonClientTask>),
+                    typeof(ITask<ReinitTask>),
                 }
                 .AsReadOnly();
         }

@@ -49,8 +49,13 @@ namespace SomeDAO.Backend.Api
         /// <param name="minPrice">Minimum price to include</param>
         /// <param name="orderBy">Sort field: 'createdAt' or 'deadline'.</param>
         /// <param name="sort">Sort order: 'asc' or 'desc'.</param>
+        /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         /// <param name="page">Page number to return (default 0).</param>
         /// <param name="pageSize">Page size (default 10, max 100).</param>
+        /// <remarks>
+        /// With non-empty <paramref name="translateTo"/> returned objects will include additional fields <b>nameTranslated</b>, <b>descriptionTranslated</b> and <b>technicalTaskTranslated</b> with translated values.
+        /// These fields may be null if corresponding value is not translated yet.
+        /// </remarks>
         [SwaggerResponse(400, "Invalid request.")]
         [HttpGet]
         public ActionResult<List<Order>> Search(
@@ -60,6 +65,7 @@ namespace SomeDAO.Backend.Api
             decimal? minPrice,
             string orderBy = "createdAt",
             string sort = "asc",
+            string? translateTo = null,
             int page = 0,
             int pageSize = 10)
         {
@@ -88,6 +94,13 @@ namespace SomeDAO.Backend.Api
                 ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
             }
 
+            var source = cachedData.ActiveOrders;
+            if (!string.IsNullOrEmpty(translateTo)
+                && !cachedData.ActiveOrdersTranslated.TryGetValue(translateTo, out source))
+            {
+                ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
+            }
+
             if (page < 0)
             {
                 ModelState.AddModelError(nameof(page), "Must be non-negative.");
@@ -103,7 +116,7 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
-            var list = SearchActiveOrders(query, category, language, minPrice);
+            var list = SearchActiveOrders(source!, query, category, language, minPrice);
 
             var ordered = (orderByMode, sortMode) switch
             {
@@ -130,7 +143,7 @@ namespace SomeDAO.Backend.Api
             string? language,
             decimal? minPrice)
         {
-            var list = SearchActiveOrders(query, category, language, minPrice);
+            var list = SearchActiveOrders(cachedData.ActiveOrders, query, category, language, minPrice);
 
             return list.Count();
         }
@@ -381,12 +394,13 @@ namespace SomeDAO.Backend.Api
         }
 
         protected IEnumerable<Order> SearchActiveOrders(
+            List<Order> source,
             string? query,
             string? category,
             string? language,
             decimal? minPrice)
         {
-            var list = cachedData.AllActiveOrders.AsEnumerable();
+            var list = source.AsEnumerable();
 
             if (!string.IsNullOrWhiteSpace(category))
             {

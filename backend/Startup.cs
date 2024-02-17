@@ -50,6 +50,7 @@ namespace SomeDAO.Backend
             services.AddTask<ForceResyncTask>(o => o.AutoStart(ForceResyncTask.Interval));
             services.AddTask<MasterTrackerTask>(o => o.AutoStart(bo.MasterSyncInterval));
             services.AddTask<ReinitTask>(o => o.AutoStart(ReinitTask.Interval, TimeSpan.FromSeconds(1)));
+            services.AddTask<TranslateTask>(o => o.AutoStart(TranslateTask.Interval));
 
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
@@ -84,6 +85,7 @@ namespace SomeDAO.Backend
                     typeof(ITask<ForceResyncTask>),
                     typeof(ITask<MasterTrackerTask>),
                     typeof(ITask<ReinitTask>),
+                    typeof(ITask<TranslateTask>),
                 }
                 .AsReadOnly();
         }

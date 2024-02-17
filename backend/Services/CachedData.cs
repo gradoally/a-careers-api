@@ -1,4 +1,5 @@
-﻿using RecurrentTasks;
+﻿using System.Linq;
+using RecurrentTasks;
 using SomeDAO.Backend.Data;
 
 namespace SomeDAO.Backend.Services
@@ -18,9 +19,10 @@ namespace SomeDAO.Backend.Services
         public List<Admin> AllAdmins { get; private set; } = new();
         public List<User> AllUsers { get; private set; } = new();
         public List<Order> AllOrders { get; private set; } = new();
-        public List<Order> AllActiveOrders { get; private set; } = new();
+        public List<Order> ActiveOrders { get; private set; } = new();
         public List<Category> AllCategories { get; private set; } = new();
         public List<Language> AllLanguages { get; private set; } = new();
+        public Dictionary<string, List<Order>> ActiveOrdersTranslated { get; private set; } = new();
 
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
@@ -50,19 +52,53 @@ namespace SomeDAO.Backend.Services
             var languages = await db.MainDb.Table<Language>().ToListAsync().ConfigureAwait(false);
             logger.LogTrace("Loaded {Count} languages", languages.Count);
 
+            var hashes = activeOrders.Select(x => x.NameHash)
+                .Concat(activeOrders.Select(x => x.DescriptionHash))
+                .Concat(activeOrders.Select(x => x.TechnicalTaskHash))
+                .Where(x => x != null)
+                .Distinct()
+                .ToArray();
+            var activeOrdersTranslated = new Dictionary<string, List<Order>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var language in languages)
+            {
+                var translations = await db.MainDb.Table<Translation>().Where(x => x.Language == language.Name && hashes.Contains(x.Hash)).ToListAsync().ConfigureAwait(false);
+                var copies = activeOrders.Select(x => x.ShallowCopy()).ToList();
+                foreach (var item in copies)
+                {
+                    if (item.NameHash != null)
+                    {
+                        item.NameTranslated = translations.Find(x => x.Hash.SequenceEqual(item.NameHash))?.TranslatedText;
+                    }
+
+                    if (item.DescriptionHash != null)
+                    {
+                        item.DescriptionTranslated = translations.Find(x => x.Hash.SequenceEqual(item.DescriptionHash))?.TranslatedText;
+                    }
+
+                    if (item.TechnicalTaskHash != null)
+                    {
+                        item.TechnicalTaskTranslated = translations.Find(x => x.Hash.SequenceEqual(item.TechnicalTaskHash))?.TranslatedText;
+                    }
+                }
+                activeOrdersTranslated[language.Hash] = copies;
+                activeOrdersTranslated[language.Name] = copies;
+            }
+            logger.LogTrace("Translations applied to ActiveOrders");
+
             AllAdmins = admins;
             AllUsers = users;
             AllOrders = orders;
-            AllActiveOrders = activeOrders;
+            ActiveOrders = activeOrders;
             AllCategories = categories;
             AllLanguages = languages;
+            ActiveOrdersTranslated = activeOrdersTranslated;
 
             logger.LogDebug(
                 "Reloaded {Count} admins, {Count} users, {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",
                 AllAdmins.Count,
                 AllUsers.Count,
                 AllOrders.Count,
-                AllActiveOrders.Count,
+                ActiveOrders.Count,
                 AllCategories.Count,
                 AllLanguages.Count);
         }

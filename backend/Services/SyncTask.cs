@@ -1,4 +1,5 @@
-﻿using RecurrentTasks;
+﻿using System.Security.Cryptography;
+using RecurrentTasks;
 using SomeDAO.Backend.Data;
 using TonLibDotNet;
 
@@ -15,14 +16,16 @@ namespace SomeDAO.Backend.Services
         private readonly DataParser dataParser;
         private readonly SyncSchedulerService syncScheduler;
         private readonly ITask cachedDataTask;
+        private readonly ITask translateTask;
 
-        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, DataParser dataParser, SyncSchedulerService syncScheduler, ITask<CachedData> cachedDataTask)
+        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, DataParser dataParser, SyncSchedulerService syncScheduler, ITask<CachedData> cachedDataTask, ITask<TranslateTask> translateTask)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             this.dataParser = dataParser ?? throw new ArgumentNullException(nameof(dataParser));
             this.syncScheduler = syncScheduler ?? throw new ArgumentNullException(nameof(syncScheduler));
             this.cachedDataTask = cachedDataTask;
+            this.translateTask = translateTask;
         }
 
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
@@ -100,6 +103,7 @@ namespace SomeDAO.Backend.Services
             if (counter > 0)
             {
                 cachedDataTask.TryRunImmediately();
+                translateTask.TryRunImmediately();
             }
         }
 
@@ -126,7 +130,14 @@ namespace SomeDAO.Backend.Services
                 return DateTimeOffset.MaxValue;
             }
 
-            await dataParser.UpdateUser(user).ConfigureAwait(false);
+            var changed = await dataParser.UpdateUser(user).ConfigureAwait(false);
+
+            if (changed)
+            {
+                user.AboutHash = string.IsNullOrWhiteSpace(user.About) ? null : SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(user.About));
+                user.NeedTranslation = true;
+            }
+
             await dbProvider.MainDb.InsertOrReplaceAsync(user).ConfigureAwait(false);
             return user.LastSync;
         }
@@ -141,7 +152,15 @@ namespace SomeDAO.Backend.Services
             }
 
             var endLt = order.LastTxLt;
-            await dataParser.UpdateOrder(order).ConfigureAwait(false);
+            var changed = await dataParser.UpdateOrder(order).ConfigureAwait(false);
+
+            if (changed)
+            {
+                order.NameHash = string.IsNullOrWhiteSpace(order.Name) ? null : SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(order.Name));
+                order.DescriptionHash = string.IsNullOrWhiteSpace(order.Description) ? null : SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(order.Description));
+                order.TechnicalTaskHash = string.IsNullOrWhiteSpace(order.TechnicalTask) ? null : SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(order.TechnicalTask));
+                order.NeedTranslation = true;
+            }
 
             await foreach (var activity in dataParser.GetOrderActivities(order, endLt))
             {

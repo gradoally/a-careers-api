@@ -4,6 +4,8 @@
     {
         public string MasterAddress { get; set; } = string.Empty;
 
+        public string DeeplToken { get; set; } = string.Empty;
+
         public string DatabaseFile { get; set; } = "./backend.sqlite";
 
         public string CacheDirectory { get; set; } = "./cache";

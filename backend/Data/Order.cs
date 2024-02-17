@@ -78,6 +78,27 @@ namespace SomeDAO.Backend.Data
         #endregion
 
         [JsonIgnore]
+        public byte[]? NameHash { get; set; }
+
+        [Ignore]
+        public string? NameTranslated { get; set; }
+
+        [JsonIgnore]
+        public byte[]? DescriptionHash { get; set; }
+
+        [Ignore]
+        public string? DescriptionTranslated { get; set; }
+
+        [JsonIgnore]
+        public byte[]? TechnicalTaskHash { get; set; }
+
+        [Ignore]
+        public string? TechnicalTaskTranslated { get; set; }
+
+        [JsonIgnore]
+        public bool NeedTranslation { get; set; }
+
+        [JsonIgnore]
         private string? textToSearch = null;
 
         [JsonIgnore]
@@ -89,6 +110,11 @@ namespace SomeDAO.Backend.Data
                 textToSearch ??= Name?.ToUpperInvariant() + " " + Description?.ToUpperInvariant();
                 return textToSearch;
             }
+        }
+
+        public Order ShallowCopy()
+        {
+            return (Order)MemberwiseClone();
         }
     }
 }

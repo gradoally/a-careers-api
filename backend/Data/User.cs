@@ -48,6 +48,12 @@ namespace SomeDAO.Backend.Data
 
         #endregion
 
+        [JsonIgnore]
+        public byte[]? AboutHash { get; set; }
+
+        [JsonIgnore]
+        public bool NeedTranslation { get; set; }
+
         #region IBlockchainEntity
 
         [JsonIgnore]

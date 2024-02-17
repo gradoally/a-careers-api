@@ -431,11 +431,6 @@ namespace SomeDAO.Backend.Services
                     _ => OrderActivitySenderRole.Unspecified,
                 };
 
-                if (op == OpCode.InitOrder)
-                {
-                    order.CreatedAt = tx.Utime;
-                }
-
                 var bounceable = role == OrderActivitySenderRole.Customer || role == OrderActivitySenderRole.Freelancer ? false : true;
 
                 var activity = new OrderActivity

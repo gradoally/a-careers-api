@@ -146,6 +146,11 @@ namespace SomeDAO.Backend.Services
 
             await foreach (var activity in dataParser.GetOrderActivities(order, endLt))
             {
+                if (activity.OpCode == OpCode.InitOrder)
+                {
+                    order.CreatedAt = activity.Timestamp;
+                }
+
                 var exist = await dbProvider.MainDb.Table<OrderActivity>().CountAsync(x => x.OrderId == order.Id && x.TxLt == activity.TxLt);
                 if (exist == 0)
                 {

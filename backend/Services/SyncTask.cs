@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using RecurrentTasks;
+﻿using RecurrentTasks;
 using SomeDAO.Backend.Data;
 using TonLibDotNet;
 
@@ -180,7 +179,8 @@ namespace SomeDAO.Backend.Services
             var nextAdmin = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_ADMIN))?.LongValue ?? 0;
             if (nextAdmin < md.nextAdminIndex)
             {
-                await foreach (var item in dataParser.EnumerateAdminAddresses(masterAddress, nextAdmin, md.nextAdminIndex)) {
+                await foreach (var item in dataParser.EnumerateAdminAddresses(masterAddress, nextAdmin, md.nextAdminIndex))
+                {
                     var entity = new Admin()
                     {
                         Index = item.index,
@@ -199,7 +199,8 @@ namespace SomeDAO.Backend.Services
             var nextUser = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_USER))?.LongValue ?? 0;
             if (nextUser < md.nextUserIndex)
             {
-                await foreach (var item in dataParser.EnumerateUserAddresses(masterAddress, nextUser, md.nextUserIndex)) {
+                await foreach (var item in dataParser.EnumerateUserAddresses(masterAddress, nextUser, md.nextUserIndex))
+                {
                     var entity = new User()
                     {
                         Index = item.index,
@@ -218,7 +219,8 @@ namespace SomeDAO.Backend.Services
             var nextOrder = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_ORDER))?.LongValue ?? 0;
             if (nextOrder < md.nextOrderIndex)
             {
-                await foreach (var item in dataParser.EnumerateOrderAddresses(masterAddress, nextOrder, md.nextOrderIndex)) {
+                await foreach (var item in dataParser.EnumerateOrderAddresses(masterAddress, nextOrder, md.nextOrderIndex))
+                {
                     var entity = new Order()
                     {
                         Index = item.index,

@@ -2,13 +2,13 @@
 
 namespace SomeDAO.Backend.Data
 {
-	public enum OrderActivitySenderRole
-	{
+    public enum OrderActivitySenderRole
+    {
         /// <summary>
         /// Sender is unspecified (usually Master contract).
         /// </summary>
         [Description("Sender is unspecified (usually Master contract)")]
-		Unspecified = 0,
+        Unspecified = 0,
 
         /// <summary>
         /// Sender is customer in this order.
@@ -21,5 +21,5 @@ namespace SomeDAO.Backend.Data
         /// </summary>
         [Description("Sender is freelancer in this order")]
         Freelancer = 2,
-	}
+    }
 }

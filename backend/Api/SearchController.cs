@@ -372,7 +372,7 @@ namespace SomeDAO.Backend.Api
                 .Take(pageSize)
                 .ToListAsync();
 
-            foreach(var item in list)
+            foreach (var item in list)
             {
                 item.Sender = allUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, item.SenderAddress));
             }

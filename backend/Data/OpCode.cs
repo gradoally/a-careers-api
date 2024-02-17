@@ -7,8 +7,8 @@
     /// Source: <see href="https://github.com/the-real-some-dao/alfa-mater-core/blob/7fb025b6bfc24e4bb7219f6ea65f4184dccaa29e/contracts/constants/op-codes.fc#L3-L16">contracts/constants/op-codes.fc</see>.
     /// </remarks>
     public enum OpCode
-	{
-		Unknown = 0,
+    {
+        Unknown = 0,
 
         InitOrder = 15,
         ActivateOrder = 1,

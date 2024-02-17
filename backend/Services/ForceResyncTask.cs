@@ -42,7 +42,7 @@ namespace SomeDAO.Backend.Services
             var boundary = DateTimeOffset.UtcNow.Subtract(options.AdminForceResyncInterval);
             var list = await dbProvider.MainDb.Table<Admin>().Where(x => x.LastSync < boundary).ToListAsync().ConfigureAwait(false);
 
-            foreach(var item in list)
+            foreach (var item in list)
             {
                 await syncScheduler.Schedule(item).ConfigureAwait(false);
             }

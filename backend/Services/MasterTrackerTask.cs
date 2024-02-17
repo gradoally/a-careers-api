@@ -1,7 +1,6 @@
 ﻿using RecurrentTasks;
 using SomeDAO.Backend.Data;
 using TonLibDotNet;
-using TonLibDotNet.Cells;
 using TonLibDotNet.Types;
 using TonLibDotNet.Types.Internal;
 

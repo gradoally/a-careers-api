@@ -45,11 +45,10 @@ namespace SomeDAO.Backend
             services.AddSingleton<CachedData>();
             services.AddScoped<SyncSchedulerService>();
 
-            services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
-            services.AddTask<SyncTask>(o => o.AutoStart(SyncTask.Interval, TimeSpan.FromSeconds(5)));
+            services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(1)));
+            services.AddTask<SyncTask>(o => o.AutoStart(SyncTask.Interval));
             services.AddTask<ForceResyncTask>(o => o.AutoStart(ForceResyncTask.Interval));
             services.AddTask<MasterTrackerTask>(o => o.AutoStart(bo.MasterSyncInterval));
-            services.AddTask<ReinitTask>(o => o.AutoStart(ReinitTask.Interval, TimeSpan.FromSeconds(1)));
             services.AddTask<TranslateTask>(o => o.AutoStart(TranslateTask.Interval));
 
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
@@ -84,7 +83,6 @@ namespace SomeDAO.Backend
                     typeof(ITask<SyncTask>),
                     typeof(ITask<ForceResyncTask>),
                     typeof(ITask<MasterTrackerTask>),
-                    typeof(ITask<ReinitTask>),
                     typeof(ITask<TranslateTask>),
                 }
                 .AsReadOnly();

@@ -46,10 +46,15 @@ namespace SomeDAO.Backend.Data
 
         public string? Specialization { get; set; }
 
+        public string? Language { get; set; }
+
         #endregion
 
         [JsonIgnore]
         public byte[]? AboutHash { get; set; }
+
+        [Ignore]
+        public string? AboutTranslated { get; set; }
 
         [JsonIgnore]
         public bool NeedTranslation { get; set; }

@@ -94,7 +94,7 @@ namespace SomeDAO.Backend.Services
                     return (count, false);
                 }
 
-                await EnsureTranslated(item.About, item.AboutHash, "-").ConfigureAwait(false);
+                await EnsureTranslated(item.About, item.AboutHash, item.Language).ConfigureAwait(false);
 
                 item.NeedTranslation = false;
                 await dbProvider.MainDb.UpdateAsync(item).ConfigureAwait(false);

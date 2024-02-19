@@ -139,6 +139,11 @@ namespace SomeDAO.Backend.Services
             {
                 value.Specialization = s.LoadStringSnake(true) ?? string.Empty;
             }
+
+            if (dict.TryGetValue(PropLanguage, out s))
+            {
+                value.Language = s.LoadStringSnake(true) ?? string.Empty;
+            }
         }
 
         public static void FillOrderContent(IOrderContent value, Cell fromDict)

@@ -17,8 +17,9 @@ namespace SomeDAO.Backend.Api
         private readonly ILogger logger;
         private readonly CachedData cachedData;
         private readonly BackendConfig backendConfig;
+        private readonly IDbProvider dbProvider;
 
-        public SearchController(ILogger<SearchController> logger, CachedData searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions)
+        public SearchController(ILogger<SearchController> logger, CachedData searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions, IDbProvider dbProvider)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.cachedData = searchService ?? throw new ArgumentNullException(nameof(searchService));
@@ -27,6 +28,7 @@ namespace SomeDAO.Backend.Api
                 MasterContractAddress = backendOptions.Value.MasterAddress,
                 Mainnet = tonOptions.Value.UseMainnet,
             };
+            this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
         }
 
         /// <summary>
@@ -53,8 +55,16 @@ namespace SomeDAO.Backend.Api
         /// <param name="page">Page number to return (default 0).</param>
         /// <param name="pageSize">Page size (default 10, max 100).</param>
         /// <remarks>
-        /// With non-empty <paramref name="translateTo"/> returned objects will include additional fields <b>nameTranslated</b>, <b>descriptionTranslated</b> and <b>technicalTaskTranslated</b> with translated values.
+        /// <para>
+        /// With non-empty <b><paramref name="translateTo"/></b> param returned top-level objects (Orders) will have fields <b>nameTranslated</b>, <b>descriptionTranslated</b> and <b>technicalTaskTranslated</b> filled with translated values of their corresponding original field values.
+        /// </para>
+        /// <para>
         /// These fields may be null if corresponding value is not translated yet.
+        /// Also, these fields will be null if original order language is equal to the language to translate to.
+        /// </para>
+        /// <para>
+        /// Expected usage: <code>… = (item.nameTranslated ?? item.name)</code>.
+        /// </para>
         /// </remarks>
         [SwaggerResponse(400, "Invalid request.")]
         [HttpGet]
@@ -152,9 +162,10 @@ namespace SomeDAO.Backend.Api
         /// Find user by wallet address.
         /// </summary>
         /// <param name="address">Address of user's main wallet (in user-friendly form).</param>
+        /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Address is empty or invalid.")]
         [HttpGet]
-        public ActionResult<FindResult<User>> FindUser(string address)
+        public async Task<ActionResult<FindResult<User>>> FindUser(string address, string? translateTo = null)
         {
             if (string.IsNullOrEmpty(address))
             {
@@ -166,12 +177,29 @@ namespace SomeDAO.Backend.Api
                 ModelState.AddModelError(nameof(address), "Address not valid (wrong length, contains invalid characters, etc).");
             }
 
+            Language? translateLanguage = default;
+            if (!string.IsNullOrEmpty(translateTo))
+            {
+                translateLanguage = cachedData.AllLanguages.Find(x => x.Name == translateTo || x.Hash == translateTo);
+                if (translateLanguage == null)
+                {
+                    ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
+                }
+            }
+
             if (!ModelState.IsValid)
             {
                 return ValidationProblem();
             }
 
             var user = cachedData.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, address));
+
+            if (user != null && translateLanguage != null && user.AboutHash != null)
+            {
+                var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
+                user.AboutTranslated = translated?.TranslatedText;
+            }
+
             return new FindResult<User>(user);
         }
 
@@ -179,9 +207,10 @@ namespace SomeDAO.Backend.Api
         /// Get user by index.
         /// </summary>
         /// <param name="index">ID of user ('index' field from user contract).</param>
+        /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Index is invalid (or user does not exist).")]
         [HttpGet]
-        public ActionResult<User> GetUser(long index)
+        public async Task<ActionResult<User>> GetUser(long index, string? translateTo = null)
         {
             var user = cachedData.AllUsers.Find(x => x.Index == index);
 
@@ -191,6 +220,23 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
+            Language? translateLanguage = default;
+            if (!string.IsNullOrEmpty(translateTo))
+            {
+                translateLanguage = cachedData.AllLanguages.Find(x => x.Name == translateTo || x.Hash == translateTo);
+                if (translateLanguage == null)
+                {
+                    ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
+                    return ValidationProblem();
+                }
+            }
+
+            if (translateLanguage != null && user.AboutHash != null)
+            {
+                var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
+                user.AboutTranslated = translated?.TranslatedText;
+            }
+
             return user;
         }
 
@@ -198,9 +244,10 @@ namespace SomeDAO.Backend.Api
         /// Get order by index.
         /// </summary>
         /// <param name="index">ID of order ('index' field from order contract).</param>
+        /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Index is invalid (or order does not exist).")]
         [HttpGet]
-        public ActionResult<Order> GetOrder(long index)
+        public async Task<ActionResult<Order>> GetOrder(long index, string? translateTo = null)
         {
             var order = cachedData.AllOrders.Find(x => x.Index == index);
 
@@ -210,6 +257,36 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
+            Language? translateLanguage = default;
+            if (!string.IsNullOrEmpty(translateTo))
+            {
+                translateLanguage = cachedData.AllLanguages.Find(x => x.Name == translateTo || x.Hash == translateTo);
+                if (translateLanguage == null)
+                {
+                    ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
+                    return ValidationProblem();
+                }
+            }
+
+            if (translateLanguage != null)
+            {
+                if (order.NameHash != null)
+                {
+                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
+                    order.NameTranslated = translated?.TranslatedText;
+                }
+                if (order.DescriptionHash != null)
+                {
+                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
+                    order.DescriptionTranslated = translated?.TranslatedText;
+                }
+                if (order.TechnicalTaskHash != null)
+                {
+                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
+                    order.TechnicalTaskTranslated = translated?.TranslatedText;
+                }
+            }
+
             return order;
         }
 
@@ -217,9 +294,10 @@ namespace SomeDAO.Backend.Api
         /// Find order by contract address.
         /// </summary>
         /// <param name="address">Address of order contract (in user-friendly form).</param>
+        /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Address is empty or invalid.")]
         [HttpGet]
-        public ActionResult<FindResult<Order>> FindOrder(string address)
+        public async Task<ActionResult<FindResult<Order>>> FindOrder(string address, string? translateTo = null)
         {
             if (string.IsNullOrEmpty(address))
             {
@@ -231,12 +309,43 @@ namespace SomeDAO.Backend.Api
                 ModelState.AddModelError(nameof(address), "Address not valid (wrong length, contains invalid characters, etc).");
             }
 
+            Language? translateLanguage = default;
+            if (!string.IsNullOrEmpty(translateTo))
+            {
+                translateLanguage = cachedData.AllLanguages.Find(x => x.Name == translateTo || x.Hash == translateTo);
+                if (translateLanguage == null)
+                {
+                    ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
+                    return ValidationProblem();
+                }
+            }
+
             if (!ModelState.IsValid)
             {
                 return ValidationProblem();
             }
 
             var order = cachedData.AllOrders.Find(x => StringComparer.Ordinal.Equals(x.Address, address));
+
+            if (order != null && translateLanguage != null)
+            {
+                if (order.NameHash != null)
+                {
+                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
+                    order.NameTranslated = translated?.TranslatedText;
+                }
+                if (order.DescriptionHash != null)
+                {
+                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
+                    order.DescriptionTranslated = translated?.TranslatedText;
+                }
+                if (order.TechnicalTaskHash != null)
+                {
+                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
+                    order.TechnicalTaskTranslated = translated?.TranslatedText;
+                }
+            }
+
             return new FindResult<Order>(order);
         }
 
@@ -278,10 +387,10 @@ namespace SomeDAO.Backend.Api
         /// <param name="index">ID of user ('index' field from user contract).</param>
         /// <param name="role">Role of user: 'customer' or 'freelancer'.</param>
         /// <param name="status">Status of orders to return.</param>
-        /// <remarks>Only statuses with non-zero number of orders are returned.</remarks>
+        /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' or 'role' value.")]
         [HttpGet]
-        public ActionResult<List<Order>> GetUserOrders(long index, string role, int status)
+        public async Task<ActionResult<List<Order>>> GetUserOrders(long index, string role, int status, string? translateTo = null)
         {
             var mode = role.ToLowerInvariant() switch
             {
@@ -293,6 +402,17 @@ namespace SomeDAO.Backend.Api
             if (mode == 0)
             {
                 ModelState.AddModelError(nameof(role), "Invalid 'role' value: use 'customer' or 'freelancer'.");
+            }
+
+            Language? translateLanguage = default;
+            if (!string.IsNullOrEmpty(translateTo))
+            {
+                translateLanguage = cachedData.AllLanguages.Find(x => x.Name == translateTo || x.Hash == translateTo);
+                if (translateLanguage == null)
+                {
+                    ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
+                    return ValidationProblem();
+                }
             }
 
             if (!ModelState.IsValid)
@@ -313,6 +433,28 @@ namespace SomeDAO.Backend.Api
                 : cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
 
             var list = query.Where(x => x.Status == (OrderStatus)status).ToList();
+
+            if (translateLanguage != null)
+            {
+                foreach (var order in list)
+                {
+                    if (order.NameHash != null)
+                    {
+                        var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
+                        order.NameTranslated = translated?.TranslatedText;
+                    }
+                    if (order.DescriptionHash != null)
+                    {
+                        var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
+                        order.DescriptionTranslated = translated?.TranslatedText;
+                    }
+                    if (order.TechnicalTaskHash != null)
+                    {
+                        var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
+                        order.TechnicalTaskTranslated = translated?.TranslatedText;
+                    }
+                }
+            }
 
             return list;
         }

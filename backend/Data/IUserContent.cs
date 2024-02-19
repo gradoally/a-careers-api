@@ -19,5 +19,7 @@
         string? Resume { get; set; }
 
         string? Specialization { get; set; }
+
+        string? Language { get; set; }
     }
 }

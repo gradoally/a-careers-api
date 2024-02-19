@@ -48,6 +48,8 @@ The main and most important setting is **`MasterAddress`** - it stores TON addre
 
 ⚠ Important! When you change **master address** - you also need to **delete old database** file (backend.sqlite by default)! Application compares new and stored addresses during startup, and will refuse to start if mismatch is detected.
 
+Second important setting is **`DeeplToken`** - token for Deepl.com translation service. With this token, some Order fields (name, description, tecknicalTask) and User fields (about) will be translated to all languages, set in master contract. In case this token is not set or empty - *translation feature will be disabled*. 
+
 ℹ To ensure smooth Git updates in the future, it's recommended to not change existing `appsettings.json` file. Instead, copy it to `appsettings.Production.json` (attention to uppercase **P**!) in the same folder and change settings in it. You may safely remove unchanged (unneeded) settings from new file - application reads both files during startup and takes value from `appsettings.json` if it's not exist in `appsettings.Production.json`. But please pay attention to Json hierarchy inside settings file!
 
 

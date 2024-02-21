@@ -118,7 +118,7 @@ namespace SomeDAO.Backend.Services
                 if (!existing.Exists(x => x.Language == language))
                 {
                     // fix for: targetLanguageCode="en" is deprecated, please use "en-GB" or "en-US" instead
-                    var toLang = language == "en" ? "en-US" : language;
+                    var toLang = language == "en" ? "en-GB" : language;
 
                     var text = await GetTranslator().TranslateTextAsync(value, null, toLang, translateOptions).ConfigureAwait(false);
                     var t = new Translation()

@@ -260,9 +260,16 @@ namespace SomeDAO.Backend.Services
             logger.LogDebug("Reloaded {Count} categories", catCount);
 
             // Recreate all languages
+            var existingCount = await db.Table<Language>().CountAsync();
             await db.Table<Language>().DeleteAsync(x => true).ConfigureAwait(false);
             var lanCount = await db.InsertAllAsync(md.languages).ConfigureAwait(false);
             logger.LogDebug("Reloaded {Count} languages", lanCount);
+            if (existingCount != lanCount)
+            {
+                var c1 = await db.ExecuteAsync($"UPDATE [{nameof(Order)}] SET {nameof(Order.NeedTranslation)} = 1");
+                var c2 = await db.ExecuteAsync($"UPDATE [{nameof(User)}] SET {nameof(User.NeedTranslation)} = 1");
+                logger.LogDebug("A number of languages changed, so {Count} orders and {Count} users were marked for re-translation", c1, c2);
+            }
 
             await db.InsertOrReplaceAsync(new Settings(Settings.LAST_MASTER_DATA_HASH, md.hash)).ConfigureAwait(false);
 

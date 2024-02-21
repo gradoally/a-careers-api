@@ -7,7 +7,7 @@ using TonLibDotNet.Types.Smc;
 
 namespace SomeDAO.Backend.Services
 {
-    public class DataParser(ILogger<DataParser> logger, ITonClient tonClient)
+    public class DataParser
     {
         private static readonly string PropCategory = GetSHA256OfStringAsHex("category");
         private static readonly string PropCanApproveUser = GetSHA256OfStringAsHex("can_approve_user");
@@ -27,6 +27,15 @@ namespace SomeDAO.Backend.Services
         private static readonly string PropDeadline = GetSHA256OfStringAsHex("deadline");
         private static readonly string PropTechnicalTask = GetSHA256OfStringAsHex("technical_task");
         private static readonly string PropLanguage = GetSHA256OfStringAsHex("language");
+
+        private readonly ILogger logger;
+        private readonly ITonClient tonClient;
+
+        public DataParser(ILogger<DataParser> logger, ITonClient tonClient)
+        {
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            this.tonClient = tonClient ?? throw new ArgumentNullException(nameof(tonClient));
+        }
 
         public static string GetSHA256OfStringAsHex(string value)
         {

@@ -5,7 +5,8 @@ Deployment (using Ubuntu)
 Prerequisites
 ----------------------------
 
-* Install [**Microsoft .NET 8.0 (SDK)**](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) using [official manual](https://learn.microsoft.com/ru-ru/dotnet/core/install/linux-ubuntu).
+* Install [**Microsoft .NET 6.0 (SDK)**](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) using [official manual](https://learn.microsoft.com/ru-ru/dotnet/core/install/linux-ubuntu).
+    * .NET 8.0 is also possible, but current (Ferbruary 2023) version 8.0.2 has some memory leak problems. If used, app have to be restarted daily (depends on server hardware). 
 * Install [NGINX](https://nginx.org/) and [certbot](https://www.nginx.com/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/) according to their manuals.
 
 
@@ -16,7 +17,7 @@ Installing application
 * Self test:
     * Go to `/home/somebackend` folder
     * Runs `dotnet test`
-    * In 1-2 minutes it should finish with green text like: `Passed!  - Failed: 0, Passed: 3, Skipped: 0, Total: 3, Duration: Х ms - backend.tests.dll (net8.0)`
+    * In 1-2 minutes it should finish with green text like: `Passed!  - Failed: 0, Passed: 3, Skipped: 0, Total: 3, Duration: Х ms - backend.tests.dll`
 * Go to `/home/somebackend/backoffice`
 * Edit `appsettings.json` (put master contract address into MasterAddress, change other params if required)
 * Build application using `dotnet publish -c Release -o /var/www/somebackend`, where folder after `-o` is target folder you want to run app from.

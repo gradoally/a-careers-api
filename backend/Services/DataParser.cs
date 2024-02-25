@@ -496,7 +496,7 @@ namespace SomeDAO.Backend.Services
             }
         }
 
-        public async Task<(DateTimeOffset syncTime, string hash, long nextAdminIndex, long nextUserIndex, long nextOrderIndex, List<Category>? categories, List<Language>? languages)> ParseMasterData(string address)
+        public async Task<(DateTimeOffset syncTime, TransactionId lastTx, string stateHash, long nextAdminIndex, long nextUserIndex, long nextOrderIndex, List<Category>? categories, List<Language>? languages)> ParseMasterData(string address)
         {
             await tonClient.InitIfNeeded().ConfigureAwait(false);
 
@@ -533,7 +533,7 @@ namespace SomeDAO.Backend.Services
                 .Select(x => new Language() { Hash = x.Key, Name = x.Value ?? "???" })
                 .ToList();
 
-            return (state.SyncUtime, dataHash, nextAdmin, nextUser, nextOrder, categories, languages);
+            return (state.SyncUtime, state.LastTransactionId, dataHash, nextAdmin, nextUser, nextOrder, categories, languages);
         }
 
         public IAsyncEnumerable<(long index, string address)> EnumerateAdminAddresses(string masterAddress, long fromIndex, long toIndex)

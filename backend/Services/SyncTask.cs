@@ -1,7 +1,9 @@
-﻿using System.Security.Cryptography;
+﻿using System.Linq;
+using System.Security.Cryptography;
 using RecurrentTasks;
 using SomeDAO.Backend.Data;
 using TonLibDotNet;
+using TonLibDotNet.Types;
 
 namespace SomeDAO.Backend.Services
 {
@@ -15,15 +17,17 @@ namespace SomeDAO.Backend.Services
         private readonly IDbProvider dbProvider;
         private readonly DataParser dataParser;
         private readonly SyncSchedulerService syncScheduler;
+        private readonly CachedData cachedData;
         private readonly ITask cachedDataTask;
         private readonly ITask translateTask;
 
-        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, DataParser dataParser, SyncSchedulerService syncScheduler, ITask<CachedData> cachedDataTask, ITask<TranslateTask> translateTask)
+        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, DataParser dataParser, SyncSchedulerService syncScheduler, CachedData cachedData, ITask<CachedData> cachedDataTask, ITask<TranslateTask> translateTask)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             this.dataParser = dataParser ?? throw new ArgumentNullException(nameof(dataParser));
             this.syncScheduler = syncScheduler ?? throw new ArgumentNullException(nameof(syncScheduler));
+            this.cachedData = cachedData ?? throw new ArgumentNullException(nameof(cachedData));
             this.cachedDataTask = cachedDataTask;
             this.translateTask = translateTask;
         }
@@ -198,17 +202,21 @@ namespace SomeDAO.Backend.Services
             var nextAdmin = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_ADMIN))?.LongValue ?? 0;
             if (nextAdmin < md.nextAdminIndex)
             {
-                await foreach (var item in dataParser.EnumerateAdminAddresses(masterAddress, nextAdmin, md.nextAdminIndex))
+                await foreach (var (index, address) in dataParser.EnumerateAdminAddresses(masterAddress, nextAdmin, md.nextAdminIndex))
                 {
-                    var entity = new Admin()
+                    var entity = await db.FindAsync<Admin>(x => x.Index == index).ConfigureAwait(false);
+                    if (entity == null)
                     {
-                        Index = item.index,
-                        Address = TonUtils.Address.SetBounceable(item.address, true),
-                        AdminAddress = masterAddress,
-                    };
-                    await db.InsertAsync(entity).ConfigureAwait(false);
-                    await syncScheduler.Schedule(entity);
-                    logger.LogInformation("New {EntityType} #{Index} detected: {Address}", entity.EntityType, entity.Index, entity.Address);
+                        entity = new Admin()
+                        {
+                            Index = index,
+                            Address = TonUtils.Address.SetBounceable(address, true),
+                            AdminAddress = masterAddress,
+                        };
+                        await db.InsertAsync(entity).ConfigureAwait(false);
+                        await syncScheduler.Schedule(entity);
+                        logger.LogInformation("New {EntityType} #{Index} detected: {Address}", entity.EntityType, entity.Index, entity.Address);
+                    }
                 }
 
                 await db.InsertOrReplaceAsync(new Settings(Settings.NEXT_INDEX_ADMIN, md.nextAdminIndex)).ConfigureAwait(false);
@@ -218,17 +226,21 @@ namespace SomeDAO.Backend.Services
             var nextUser = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_USER))?.LongValue ?? 0;
             if (nextUser < md.nextUserIndex)
             {
-                await foreach (var item in dataParser.EnumerateUserAddresses(masterAddress, nextUser, md.nextUserIndex))
+                await foreach (var (index, address) in dataParser.EnumerateUserAddresses(masterAddress, nextUser, md.nextUserIndex))
                 {
-                    var entity = new User()
+                    var entity = await db.FindAsync<User>(x => x.Index == index).ConfigureAwait(false);
+                    if (entity == null)
                     {
-                        Index = item.index,
-                        Address = TonUtils.Address.SetBounceable(item.address, true),
-                        UserAddress = masterAddress,
-                    };
-                    await db.InsertAsync(entity).ConfigureAwait(false);
-                    await syncScheduler.Schedule(entity);
-                    logger.LogInformation("New {EntityType} #{Index} detected: {Address}", entity.EntityType, entity.Index, entity.Address);
+                        entity = new User()
+                        {
+                            Index = index,
+                            Address = TonUtils.Address.SetBounceable(address, true),
+                            UserAddress = masterAddress,
+                        };
+                        await db.InsertAsync(entity).ConfigureAwait(false);
+                        await syncScheduler.Schedule(entity);
+                        logger.LogInformation("New {EntityType} #{Index} detected: {Address}", entity.EntityType, entity.Index, entity.Address);
+                    }
                 }
 
                 await db.InsertOrReplaceAsync(new Settings(Settings.NEXT_INDEX_USER, md.nextUserIndex)).ConfigureAwait(false);
@@ -238,17 +250,21 @@ namespace SomeDAO.Backend.Services
             var nextOrder = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_ORDER))?.LongValue ?? 0;
             if (nextOrder < md.nextOrderIndex)
             {
-                await foreach (var item in dataParser.EnumerateOrderAddresses(masterAddress, nextOrder, md.nextOrderIndex))
+                await foreach (var (index, address) in dataParser.EnumerateOrderAddresses(masterAddress, nextOrder, md.nextOrderIndex))
                 {
-                    var entity = new Order()
+                    var entity = await db.FindAsync<Order>(x => x.Index == index).ConfigureAwait(false);
+                    if (entity == null)
                     {
-                        Index = item.index,
-                        Address = TonUtils.Address.SetBounceable(item.address, true),
-                        CustomerAddress = masterAddress,
-                    };
-                    await db.InsertAsync(entity).ConfigureAwait(false);
-                    await syncScheduler.Schedule(entity);
-                    logger.LogInformation("New {EntityType} #{Index} detected: {Address}", entity.EntityType, entity.Index, entity.Address);
+                        entity = new Order()
+                        {
+                            Index = index,
+                            Address = TonUtils.Address.SetBounceable(address, true),
+                            CustomerAddress = masterAddress,
+                        };
+                        await db.InsertAsync(entity).ConfigureAwait(false);
+                        await syncScheduler.Schedule(entity);
+                        logger.LogInformation("New {EntityType} #{Index} detected: {Address}", entity.EntityType, entity.Index, entity.Address);
+                    }
                 }
 
                 await db.InsertOrReplaceAsync(new Settings(Settings.NEXT_INDEX_ORDER, md.nextOrderIndex)).ConfigureAwait(false);
@@ -260,18 +276,61 @@ namespace SomeDAO.Backend.Services
             logger.LogDebug("Reloaded {Count} categories", catCount);
 
             // Recreate all languages
-            var existingCount = await db.Table<Language>().CountAsync();
-            await db.Table<Language>().DeleteAsync(x => true).ConfigureAwait(false);
-            var lanCount = await db.InsertAllAsync(md.languages).ConfigureAwait(false);
-            logger.LogDebug("Reloaded {Count} languages", lanCount);
-            if (existingCount != lanCount)
+            var langOldCount = await db.Table<Language>().DeleteAsync(x => true).ConfigureAwait(false);
+            var langNewCount = await db.InsertAllAsync(md.languages).ConfigureAwait(false);
+            logger.LogDebug("Reloaded {Count} languages", langNewCount);
+            if (langOldCount != langNewCount)
             {
                 var c1 = await db.ExecuteAsync($"UPDATE [{nameof(Order)}] SET {nameof(Order.NeedTranslation)} = 1");
                 var c2 = await db.ExecuteAsync($"UPDATE [{nameof(User)}] SET {nameof(User.NeedTranslation)} = 1");
                 logger.LogDebug("A number of languages changed, so {Count} orders and {Count} users were marked for re-translation", c1, c2);
             }
 
-            await db.InsertOrReplaceAsync(new Settings(Settings.LAST_MASTER_DATA_HASH, md.hash)).ConfigureAwait(false);
+            // Check TX history and re-sync contracts
+            var endLt = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_MASTER_TX_LT).ConfigureAwait(false);
+            if (endLt == null || md.lastTx.Lt != endLt.LongValue)
+            {
+                var found = 0;
+                await foreach (var tx in dataParser.EnumerateTransactions(masterAddress, md.lastTx, endLt?.LongValue ?? 0))
+                {
+                    IEnumerable<AccountAddress> arr = new[] { tx.InMsg!.Source };
+                    if (tx.OutMsgs != null)
+                    {
+                        arr = arr.Concat(tx.OutMsgs.Select(x => x.Destination));
+                    }
+
+                    foreach (var item in arr)
+                    {
+                        var adr = TonUtils.Address.SetBounceable(item.Value, true);
+
+                        var a = cachedData.AllAdmins.Find(x => StringComparer.Ordinal.Equals(x.Address, adr));
+                        if (a != null)
+                        {
+                            await syncScheduler.Schedule(a).ConfigureAwait(false);
+                            found++;
+                        }
+
+                        var u = cachedData.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.Address, adr));
+                        if (u != null)
+                        {
+                            await syncScheduler.Schedule(u).ConfigureAwait(false);
+                            found++;
+                        }
+
+                        var o = cachedData.AllOrders.Find(x => StringComparer.Ordinal.Equals(x.Address, adr));
+                        if (o != null)
+                        {
+                            await syncScheduler.Schedule(o).ConfigureAwait(false);
+                            found++;
+                        }
+                    }
+                }
+
+                logger.LogDebug("Checked transactions to Lt={Lt}, found {Count} known addresses (non unique!) for sync.", md.lastTx.Lt, found);
+            }
+
+            await db.InsertOrReplaceAsync(new Settings(Settings.LAST_MASTER_DATA_HASH, md.stateHash)).ConfigureAwait(false);
+            await db.InsertOrReplaceAsync(new Settings(Settings.LAST_MASTER_TX_LT, md.lastTx.Lt)).ConfigureAwait(false);
 
             return md.syncTime;
         }

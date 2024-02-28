@@ -36,13 +36,17 @@ namespace SomeDAO.Backend.Services
         {
             // Init TonClient and retry if needed, before actually syncing entities.
             currentTask.Options.Interval = GetTaskDelay(currentTask.RunStatus.FailsCount);
-            await dataParser.EnsureSynced().ConfigureAwait(false);
 
             var db = dbProvider.MainDb;
+
+            var lastSeqno = db.Find<Settings>(Settings.LAST_SEQNO);
+
+            await dataParser.EnsureSynced(lastSeqno?.LongValue ?? 0);
+
             var counter = 0;
             while (counter < MaxBatch)
             {
-                var next = await db.Table<SyncQueueItem>().OrderBy(x => x.SyncAt).FirstOrDefaultAsync();
+                var next = db.Table<SyncQueueItem>().OrderBy(x => x.SyncAt).FirstOrDefault();
 
                 if (next == null)
                 {
@@ -73,9 +77,9 @@ namespace SomeDAO.Backend.Services
                         _ => Task.FromResult(DateTimeOffset.MaxValue),
                     };
 
-                    var lastSync = await task.ConfigureAwait(false);
+                    var lastSync = await task;
 
-                    var deleted = await db.Table<SyncQueueItem>().Where(x => x.Index == next.Index && x.EntityType == next.EntityType && x.MinLastSync <= lastSync).DeleteAsync();
+                    var deleted = db.Table<SyncQueueItem>().Where(x => x.Index == next.Index && x.EntityType == next.EntityType && x.MinLastSync <= lastSync).Delete();
 
                     if (lastSync == DateTimeOffset.MaxValue)
                     {
@@ -90,7 +94,7 @@ namespace SomeDAO.Backend.Services
                             logger.LogWarning("Sync #{Counter} ({Type} #{Index}) sync less than required ({MinSync}), will retry in {Delay}.", counter, next.EntityType, next.Index, next.MinLastSync, delay);
                             next.SyncAt = DateTimeOffset.UtcNow + delay;
                             next.RetryCount += 1;
-                            await db.InsertOrReplaceAsync(next).ConfigureAwait(false);
+                            db.InsertOrReplace(next);
                         }
                     }
                 }
@@ -100,7 +104,7 @@ namespace SomeDAO.Backend.Services
                     logger.LogError(ex, "Sync #{Counter} ({Type} #{Index}) failed, will retry in {Delay}.", counter, next.EntityType, next.Index, delay);
                     next.SyncAt = DateTimeOffset.UtcNow + delay;
                     next.RetryCount += 1;
-                    await db.UpdateAsync(next).ConfigureAwait(false);
+                    db.Update(next);
                 }
             }
 
@@ -113,28 +117,28 @@ namespace SomeDAO.Backend.Services
 
         protected async Task<DateTimeOffset> SyncAdmin(long index)
         {
-            var admin = await dbProvider.MainDb.Table<Admin>().FirstOrDefaultAsync(x => x.Index == index);
+            var admin = dbProvider.MainDb.Table<Admin>().FirstOrDefault(x => x.Index == index);
             if (admin == null)
             {
                 logger.LogWarning("Admin #{Index} was not found, nothing to sync", index);
                 return DateTimeOffset.MaxValue;
             }
 
-            await dataParser.UpdateAdmin(admin).ConfigureAwait(false);
-            await dbProvider.MainDb.InsertOrReplaceAsync(admin).ConfigureAwait(false);
+            await dataParser.UpdateAdmin(admin);
+            dbProvider.MainDb.InsertOrReplace(admin);
             return admin.LastSync;
         }
 
         protected async Task<DateTimeOffset> SyncUser(long index)
         {
-            var user = await dbProvider.MainDb.Table<User>().FirstOrDefaultAsync(x => x.Index == index);
+            var user = dbProvider.MainDb.Table<User>().FirstOrDefault(x => x.Index == index);
             if (user == null)
             {
                 logger.LogWarning("User #{Index} was not found, nothing to sync", index);
                 return DateTimeOffset.MaxValue;
             }
 
-            var changed = await dataParser.UpdateUser(user).ConfigureAwait(false);
+            var changed = await dataParser.UpdateUser(user);
 
             if (changed)
             {
@@ -142,13 +146,13 @@ namespace SomeDAO.Backend.Services
                 user.NeedTranslation = true;
             }
 
-            await dbProvider.MainDb.InsertOrReplaceAsync(user).ConfigureAwait(false);
+            dbProvider.MainDb.InsertOrReplace(user);
             return user.LastSync;
         }
 
         protected async Task<DateTimeOffset> SyncOrder(long index)
         {
-            var order = await dbProvider.MainDb.Table<Order>().FirstOrDefaultAsync(x => x.Index == index);
+            var order = dbProvider.MainDb.Table<Order>().FirstOrDefault(x => x.Index == index);
             if (order == null)
             {
                 logger.LogWarning("Order #{Index} was not found, nothing to sync", index);
@@ -156,7 +160,7 @@ namespace SomeDAO.Backend.Services
             }
 
             var endLt = order.LastTxLt;
-            var changed = await dataParser.UpdateOrder(order).ConfigureAwait(false);
+            var changed = await dataParser.UpdateOrder(order);
 
             if (changed)
             {
@@ -173,11 +177,11 @@ namespace SomeDAO.Backend.Services
                     order.CreatedAt = activity.Timestamp;
                 }
 
-                var exist = await dbProvider.MainDb.Table<OrderActivity>().CountAsync(x => x.OrderId == order.Id && x.TxLt == activity.TxLt);
+                var exist = dbProvider.MainDb.Table<OrderActivity>().Count(x => x.OrderId == order.Id && x.TxLt == activity.TxLt);
                 if (exist == 0)
                 {
                     logger.LogDebug("Tx for Order {Address} added: Op {OpCode} at {Time} ({Lt}/{Hash})", order.Address, activity.OpCode, activity.Timestamp, activity.TxLt, activity.TxHash);
-                    await dbProvider.MainDb.InsertAsync(activity).ConfigureAwait(false);
+                    dbProvider.MainDb.Insert(activity);
                 }
                 else
                 {
@@ -185,7 +189,7 @@ namespace SomeDAO.Backend.Services
                 }
             }
 
-            await dbProvider.MainDb.InsertOrReplaceAsync(order).ConfigureAwait(false);
+            dbProvider.MainDb.InsertOrReplace(order);
 
             return order.LastSync;
         }
@@ -193,18 +197,18 @@ namespace SomeDAO.Backend.Services
         protected async Task<DateTimeOffset> SyncMaster()
         {
             var db = dbProvider.MainDb;
-            var master = await db.FindAsync<Settings>(Settings.MASTER_ADDRESS).ConfigureAwait(false);
+            var master = db.Find<Settings>(Settings.MASTER_ADDRESS);
             var masterAddress = master.StringValue!;
 
             var md = await dataParser.ParseMasterData(masterAddress);
 
             // Create missing Admins
-            var nextAdmin = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_ADMIN))?.LongValue ?? 0;
+            var nextAdmin = db.Find<Settings>(Settings.NEXT_INDEX_ADMIN)?.LongValue ?? 0;
             if (nextAdmin < md.nextAdminIndex)
             {
                 await foreach (var (index, address) in dataParser.EnumerateAdminAddresses(masterAddress, nextAdmin, md.nextAdminIndex))
                 {
-                    var entity = await db.FindAsync<Admin>(x => x.Index == index).ConfigureAwait(false);
+                    var entity = db.Find<Admin>(x => x.Index == index);
                     if (entity == null)
                     {
                         entity = new Admin()
@@ -213,22 +217,22 @@ namespace SomeDAO.Backend.Services
                             Address = TonUtils.Address.SetBounceable(address, true),
                             AdminAddress = masterAddress,
                         };
-                        await db.InsertAsync(entity).ConfigureAwait(false);
-                        await syncScheduler.Schedule(entity);
+                        db.Insert(entity);
+                        syncScheduler.Schedule(entity);
                         logger.LogInformation("New {EntityType} #{Index} detected: {Address}", entity.EntityType, entity.Index, entity.Address);
                     }
                 }
 
-                await db.InsertOrReplaceAsync(new Settings(Settings.NEXT_INDEX_ADMIN, md.nextAdminIndex)).ConfigureAwait(false);
+                db.InsertOrReplace(new Settings(Settings.NEXT_INDEX_ADMIN, md.nextAdminIndex));
             }
 
             // Create missing Users
-            var nextUser = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_USER))?.LongValue ?? 0;
+            var nextUser = db.Find<Settings>(Settings.NEXT_INDEX_USER)?.LongValue ?? 0;
             if (nextUser < md.nextUserIndex)
             {
                 await foreach (var (index, address) in dataParser.EnumerateUserAddresses(masterAddress, nextUser, md.nextUserIndex))
                 {
-                    var entity = await db.FindAsync<User>(x => x.Index == index).ConfigureAwait(false);
+                    var entity = db.Find<User>(x => x.Index == index);
                     if (entity == null)
                     {
                         entity = new User()
@@ -237,22 +241,22 @@ namespace SomeDAO.Backend.Services
                             Address = TonUtils.Address.SetBounceable(address, true),
                             UserAddress = masterAddress,
                         };
-                        await db.InsertAsync(entity).ConfigureAwait(false);
-                        await syncScheduler.Schedule(entity);
+                        db.Insert(entity);
+                        syncScheduler.Schedule(entity);
                         logger.LogInformation("New {EntityType} #{Index} detected: {Address}", entity.EntityType, entity.Index, entity.Address);
                     }
                 }
 
-                await db.InsertOrReplaceAsync(new Settings(Settings.NEXT_INDEX_USER, md.nextUserIndex)).ConfigureAwait(false);
+                db.InsertOrReplace(new Settings(Settings.NEXT_INDEX_USER, md.nextUserIndex));
             }
 
             // Create missing Orders
-            var nextOrder = (await db.FindAsync<Settings>(Settings.NEXT_INDEX_ORDER))?.LongValue ?? 0;
+            var nextOrder = db.Find<Settings>(Settings.NEXT_INDEX_ORDER)?.LongValue ?? 0;
             if (nextOrder < md.nextOrderIndex)
             {
                 await foreach (var (index, address) in dataParser.EnumerateOrderAddresses(masterAddress, nextOrder, md.nextOrderIndex))
                 {
-                    var entity = await db.FindAsync<Order>(x => x.Index == index).ConfigureAwait(false);
+                    var entity = db.Find<Order>(x => x.Index == index);
                     if (entity == null)
                     {
                         entity = new Order()
@@ -261,33 +265,33 @@ namespace SomeDAO.Backend.Services
                             Address = TonUtils.Address.SetBounceable(address, true),
                             CustomerAddress = masterAddress,
                         };
-                        await db.InsertAsync(entity).ConfigureAwait(false);
-                        await syncScheduler.Schedule(entity);
+                        db.Insert(entity);
+                        syncScheduler.Schedule(entity);
                         logger.LogInformation("New {EntityType} #{Index} detected: {Address}", entity.EntityType, entity.Index, entity.Address);
                     }
                 }
 
-                await db.InsertOrReplaceAsync(new Settings(Settings.NEXT_INDEX_ORDER, md.nextOrderIndex)).ConfigureAwait(false);
+                db.InsertOrReplace(new Settings(Settings.NEXT_INDEX_ORDER, md.nextOrderIndex));
             }
 
             // Recreate all categories
-            await db.Table<Category>().DeleteAsync(x => true).ConfigureAwait(false);
-            var catCount = await db.InsertAllAsync(md.categories).ConfigureAwait(false);
+            db.Table<Category>().Delete(x => true);
+            var catCount = db.InsertAll(md.categories);
             logger.LogDebug("Reloaded {Count} categories", catCount);
 
             // Recreate all languages
-            var langOldCount = await db.Table<Language>().DeleteAsync(x => true).ConfigureAwait(false);
-            var langNewCount = await db.InsertAllAsync(md.languages).ConfigureAwait(false);
+            var langOldCount = db.Table<Language>().Delete(x => true);
+            var langNewCount = db.InsertAll(md.languages);
             logger.LogDebug("Reloaded {Count} languages", langNewCount);
             if (langOldCount != langNewCount)
             {
-                var c1 = await db.ExecuteAsync($"UPDATE [{nameof(Order)}] SET {nameof(Order.NeedTranslation)} = 1");
-                var c2 = await db.ExecuteAsync($"UPDATE [{nameof(User)}] SET {nameof(User.NeedTranslation)} = 1");
+                var c1 = db.Execute($"UPDATE [{nameof(Order)}] SET {nameof(Order.NeedTranslation)} = 1");
+                var c2 = db.Execute($"UPDATE [{nameof(User)}] SET {nameof(User.NeedTranslation)} = 1");
                 logger.LogDebug("A number of languages changed, so {Count} orders and {Count} users were marked for re-translation", c1, c2);
             }
 
             // Check TX history and re-sync contracts
-            var endLt = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_MASTER_TX_LT).ConfigureAwait(false);
+            var endLt = dbProvider.MainDb.Find<Settings>(Settings.LAST_MASTER_TX_LT);
             if (endLt == null || md.lastTx.Lt != endLt.LongValue)
             {
                 var found = 0;
@@ -306,21 +310,21 @@ namespace SomeDAO.Backend.Services
                         var a = cachedData.AllAdmins.Find(x => StringComparer.Ordinal.Equals(x.Address, adr));
                         if (a != null)
                         {
-                            await syncScheduler.Schedule(a).ConfigureAwait(false);
+                            syncScheduler.Schedule(a);
                             found++;
                         }
 
                         var u = cachedData.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.Address, adr));
                         if (u != null)
                         {
-                            await syncScheduler.Schedule(u).ConfigureAwait(false);
+                            syncScheduler.Schedule(u);
                             found++;
                         }
 
                         var o = cachedData.AllOrders.Find(x => StringComparer.Ordinal.Equals(x.Address, adr));
                         if (o != null)
                         {
-                            await syncScheduler.Schedule(o).ConfigureAwait(false);
+                            syncScheduler.Schedule(o);
                             found++;
                         }
                     }
@@ -329,8 +333,8 @@ namespace SomeDAO.Backend.Services
                 logger.LogDebug("Checked transactions to Lt={Lt}, found {Count} known addresses (non unique!) for sync.", md.lastTx.Lt, found);
             }
 
-            await db.InsertOrReplaceAsync(new Settings(Settings.LAST_MASTER_DATA_HASH, md.stateHash)).ConfigureAwait(false);
-            await db.InsertOrReplaceAsync(new Settings(Settings.LAST_MASTER_TX_LT, md.lastTx.Lt)).ConfigureAwait(false);
+            db.InsertOrReplace(new Settings(Settings.LAST_MASTER_DATA_HASH, md.stateHash));
+            db.InsertOrReplace(new Settings(Settings.LAST_MASTER_TX_LT, md.lastTx.Lt));
 
             return md.syncTime;
         }

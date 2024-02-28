@@ -23,11 +23,11 @@ namespace SomeDAO.Backend.Services
             this.syncTask = syncTask ?? throw new ArgumentNullException(nameof(syncTask));
         }
 
-        public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
+        public Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
-            var c1 = await ForceResyncAdmins();
-            var c2 = await ForceResyncUsers();
-            var c3 = await ForceResyncOrders();
+            var c1 = ForceResyncAdmins();
+            var c2 = ForceResyncUsers();
+            var c3 = ForceResyncOrders();
 
             logger.LogDebug("Scheduled {Count} Admins, {Count} Users, {Count} Orders for resync", c1, c2, c3);
 
@@ -35,42 +35,44 @@ namespace SomeDAO.Backend.Services
             {
                 syncTask.TryRunImmediately();
             }
+
+            return Task.CompletedTask;
         }
 
-        protected async Task<int> ForceResyncAdmins()
+        protected int ForceResyncAdmins()
         {
             var boundary = DateTimeOffset.UtcNow.Subtract(options.AdminForceResyncInterval);
-            var list = await dbProvider.MainDb.Table<Admin>().Where(x => x.LastSync < boundary).ToListAsync().ConfigureAwait(false);
+            var list = dbProvider.MainDb.Table<Admin>().Where(x => x.LastSync < boundary).ToList();
 
             foreach (var item in list)
             {
-                await syncScheduler.Schedule(item).ConfigureAwait(false);
+                syncScheduler.Schedule(item);
             }
 
             return list.Count;
         }
 
-        protected async Task<int> ForceResyncUsers()
+        protected int ForceResyncUsers()
         {
             var boundary = DateTimeOffset.UtcNow.Subtract(options.UserForceResyncInterval);
-            var list = await dbProvider.MainDb.Table<User>().Where(x => x.LastSync < boundary).ToListAsync().ConfigureAwait(false);
+            var list = dbProvider.MainDb.Table<User>().Where(x => x.LastSync < boundary).ToList();
 
             foreach (var item in list)
             {
-                await syncScheduler.Schedule(item).ConfigureAwait(false);
+                syncScheduler.Schedule(item);
             }
 
             return list.Count;
         }
 
-        protected async Task<int> ForceResyncOrders()
+        protected int ForceResyncOrders()
         {
             var boundary = DateTimeOffset.UtcNow.Subtract(options.OrderForceResyncInterval);
-            var list = await dbProvider.MainDb.Table<Order>().Where(x => x.LastSync < boundary).ToListAsync().ConfigureAwait(false);
+            var list = dbProvider.MainDb.Table<Order>().Where(x => x.LastSync < boundary).ToList();
 
             foreach (var item in list)
             {
-                await syncScheduler.Schedule(item).ConfigureAwait(false);
+                syncScheduler.Schedule(item);
             }
 
             return list.Count;

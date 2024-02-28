@@ -196,7 +196,7 @@ namespace SomeDAO.Backend.Api
 
             if (user != null && translateLanguage != null && user.AboutHash != null)
             {
-                var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
+                var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
                 user.AboutTranslated = translated?.TranslatedText;
             }
 
@@ -233,7 +233,7 @@ namespace SomeDAO.Backend.Api
 
             if (translateLanguage != null && user.AboutHash != null)
             {
-                var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
+                var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
                 user.AboutTranslated = translated?.TranslatedText;
             }
 
@@ -272,17 +272,17 @@ namespace SomeDAO.Backend.Api
             {
                 if (order.NameHash != null)
                 {
-                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
+                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
                     order.NameTranslated = translated?.TranslatedText;
                 }
                 if (order.DescriptionHash != null)
                 {
-                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
+                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
                     order.DescriptionTranslated = translated?.TranslatedText;
                 }
                 if (order.TechnicalTaskHash != null)
                 {
-                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
+                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
                     order.TechnicalTaskTranslated = translated?.TranslatedText;
                 }
             }
@@ -331,17 +331,17 @@ namespace SomeDAO.Backend.Api
             {
                 if (order.NameHash != null)
                 {
-                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
+                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
                     order.NameTranslated = translated?.TranslatedText;
                 }
                 if (order.DescriptionHash != null)
                 {
-                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
+                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
                     order.DescriptionTranslated = translated?.TranslatedText;
                 }
                 if (order.TechnicalTaskHash != null)
                 {
-                    var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
+                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
                     order.TechnicalTaskTranslated = translated?.TranslatedText;
                 }
             }
@@ -440,17 +440,17 @@ namespace SomeDAO.Backend.Api
                 {
                     if (order.NameHash != null)
                     {
-                        var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
+                        var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
                         order.NameTranslated = translated?.TranslatedText;
                     }
                     if (order.DescriptionHash != null)
                     {
-                        var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
+                        var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
                         order.DescriptionTranslated = translated?.TranslatedText;
                     }
                     if (order.TechnicalTaskHash != null)
                     {
-                        var translated = await dbProvider.MainDb.FindAsync<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
+                        var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
                         order.TechnicalTaskTranslated = translated?.TranslatedText;
                     }
                 }
@@ -468,7 +468,6 @@ namespace SomeDAO.Backend.Api
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
         [HttpGet]
         public async Task<ActionResult<List<OrderActivity>>> GetUserActivity(
-            [FromServices] IDbProvider dbProvider,
             long index,
             int page = 0,
             int pageSize = 10)
@@ -482,12 +481,12 @@ namespace SomeDAO.Backend.Api
             }
 
             var allOrders = cachedData.AllOrders;
-            var list = await dbProvider.MainDb.Table<OrderActivity>()
+            var list = dbProvider.MainDb.Table<OrderActivity>()
                 .Where(x => x.SenderAddress == user.UserAddress)
                 .OrderByDescending(x => x.Timestamp)
                 .Skip(page * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToList();
 
             foreach (var item in list)
             {
@@ -506,7 +505,6 @@ namespace SomeDAO.Backend.Api
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
         [HttpGet]
         public async Task<ActionResult<List<OrderActivity>>> GetOrderActivity(
-            [FromServices] IDbProvider dbProvider,
             long index,
             int page = 0,
             int pageSize = 10)
@@ -520,12 +518,12 @@ namespace SomeDAO.Backend.Api
             }
 
             var allUsers = cachedData.AllUsers;
-            var list = await dbProvider.MainDb.Table<OrderActivity>()
+            var list = dbProvider.MainDb.Table<OrderActivity>()
                 .Where(x => x.OrderId == order.Id)
                 .OrderByDescending(x => x.Timestamp)
                 .Skip(page * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToList();
 
             foreach (var item in list)
             {

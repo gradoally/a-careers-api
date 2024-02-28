@@ -126,16 +126,10 @@
             yield return ("Entity L", cd.AllLanguages.Count);
 
             var dbProvider = context.RequestServices.GetRequiredService<IDbProvider>();
-            var lastSeqno = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_SEQNO).ConfigureAwait(false);
-            if (lastSeqno == null || lastSeqno.LongValue == null || lastSeqno.LongValue == 0)
-            {
-                allOk = false;
-                yield return ("Masterchain seqno", "0");
-            }
-            else
-            {
-                yield return ("Masterchain seqno", lastSeqno.LongValue.Value.ToString(CultureInfo.InvariantCulture));
-            }
+            var lastSeqno = dbProvider.MainDb.Find<Settings>(Settings.LAST_SEQNO);
+            var lastSeqnoValue = lastSeqno?.LongValue ?? 0;
+            allOk &= lastSeqnoValue > 0;
+            yield return ("Masterchain seqno", lastSeqnoValue.ToString(CultureInfo.InvariantCulture));
 
             foreach (var taskType in Startup.RegisteredTasks)
             {

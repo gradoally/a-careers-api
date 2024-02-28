@@ -4,7 +4,7 @@ namespace SomeDAO.Backend.Data
 {
     public interface IDbProvider
     {
-        SQLiteAsyncConnection MainDb { get; }
+        SQLiteConnection MainDb { get; }
 
         Task Reconnect();
     }

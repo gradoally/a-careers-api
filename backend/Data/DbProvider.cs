@@ -20,18 +20,18 @@ namespace SomeDAO.Backend.Data
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             this.options = options.Value;
-            MainDb = GetMainDb(this.options).GetAwaiter().GetResult();
+            MainDb = GetMainDb(this.options);
         }
 
-        public SQLiteAsyncConnection MainDb { get; private set; }
+        public SQLiteConnection MainDb { get; private set; }
 
         public async Task Reconnect()
         {
             var olddb = MainDb;
-            MainDb = await GetMainDb(options).ConfigureAwait(false);
+            MainDb = GetMainDb(options);
             logger.LogDebug("Reconnected to DB");
-            await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-            await olddb.CloseAsync().ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            olddb.Close();
         }
 
         public void Dispose()
@@ -46,46 +46,46 @@ namespace SomeDAO.Backend.Data
             {
                 if (disposing)
                 {
-                    MainDb.CloseAsync().GetAwaiter().GetResult();
+                    MainDb.Close();
                 }
 
                 disposedValue = true;
             }
         }
 
-        protected async Task<SQLiteAsyncConnection> GetMainDb(BackendOptions options)
+        protected SQLiteConnection GetMainDb(BackendOptions options)
         {
             var file = Path.GetFullPath(options.DatabaseFile);
-            var conn = new SQLiteAsyncConnection(file);
+            var conn = new SQLiteConnection(file);
             logger.LogInformation("Connected to {FilePath}", file);
 
-            await conn.ExecuteScalarAsync<string>("PRAGMA journal_mode=WAL");
+            conn.ExecuteScalar<string>("PRAGMA journal_mode=WAL");
 
-            await conn.CreateTableAsync<Settings>().ConfigureAwait(false);
-            await conn.CreateTableAsync<Admin>().ConfigureAwait(false);
-            await conn.CreateTableAsync<User>().ConfigureAwait(false);
-            await conn.CreateTableAsync<Order>().ConfigureAwait(false);
-            await conn.CreateTableAsync<SyncQueueItem>().ConfigureAwait(false);
-            await conn.CreateTableAsync<OrderActivity>().ConfigureAwait(false);
-            await conn.CreateTableAsync<Category>().ConfigureAwait(false);
-            await conn.CreateTableAsync<Language>().ConfigureAwait(false);
-            await conn.CreateTableAsync<Translation>().ConfigureAwait(false);
+            conn.CreateTable<Settings>();
+            conn.CreateTable<Admin>();
+            conn.CreateTable<User>();
+            conn.CreateTable<Order>();
+            conn.CreateTable<SyncQueueItem>();
+            conn.CreateTable<OrderActivity>();
+            conn.CreateTable<Category>();
+            conn.CreateTable<Language>();
+            conn.CreateTable<Translation>();
 
-            await UpdateDb(conn).ConfigureAwait(false);
+            UpdateDb(conn);
 
             return conn;
         }
 
-        protected async Task UpdateDb(SQLiteAsyncConnection connection)
+        protected void UpdateDb(SQLiteConnection connection)
         {
             const int minVersion = 1;
 
-            var ver = (await connection.FindAsync<Settings>(Settings.KEY_DB_VERSION).ConfigureAwait(false))?.IntValue ?? 0;
+            var ver = connection.Find<Settings>(Settings.KEY_DB_VERSION)?.IntValue ?? 0;
 
             if (ver == 0)
             {
                 ver = minVersion;
-                await connection.InsertAsync(new Settings(Settings.KEY_DB_VERSION, ver)).ConfigureAwait(false);
+                connection.Insert(new Settings(Settings.KEY_DB_VERSION, ver));
             }
 
             if (ver < minVersion)
@@ -97,10 +97,10 @@ namespace SomeDAO.Backend.Data
             ////{
             ////    logger.LogInformation("Performing upgrade from version {Version}...", ver);
 
-            ////    await connection.InsertOrReplaceAsync(...).ConfigureAwait(false);
+            ////    await connection.InsertOrReplace(...);
 
             ////    ver = 2;
-            ////    await connection.InsertOrReplaceAsync(new Settings(Settings.KEY_DB_VERSION, ver)).ConfigureAwait(false);
+            ////    await connection.InsertOrReplace(new Settings(Settings.KEY_DB_VERSION, ver));
             ////    logger.LogInformation("DB version updated to {Version}", ver);
             ////}
         }

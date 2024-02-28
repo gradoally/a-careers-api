@@ -13,20 +13,20 @@ namespace SomeDAO.Backend.Services
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
         }
 
-        public Task Schedule(IBlockchainEntity entity)
+        public void Schedule(IBlockchainEntity entity)
         {
-            return Schedule(entity, DateTimeOffset.MinValue);
+            Schedule(entity, DateTimeOffset.MinValue);
         }
 
-        public async Task Schedule(IBlockchainEntity entity, DateTimeOffset minTimestamp)
+        public void Schedule(IBlockchainEntity entity, DateTimeOffset minTimestamp)
         {
             var db = dbProvider.MainDb;
 
-            var item = await db.Table<SyncQueueItem>().FirstOrDefaultAsync(x => x.EntityType == entity.EntityType && x.Index == entity.Index);
+            var item = db.Table<SyncQueueItem>().FirstOrDefault(x => x.EntityType == entity.EntityType && x.Index == entity.Index);
             if (item == null)
             {
                 item = new SyncQueueItem(entity, minTimestamp);
-                await db.InsertAsync(item).ConfigureAwait(false);
+                db.Insert(item);
                 logger.LogTrace("Sync for {EntityType} #{Index} scheduled (min = {Min}).", item.EntityType, item.Index, item.MinLastSync);
             }
             else
@@ -41,15 +41,15 @@ namespace SomeDAO.Backend.Services
                 //   so will return to "expected" delay in case of failure.
                 item.SyncAt = DateTimeOffset.UtcNow;
 
-                await db.InsertOrReplaceAsync(item).ConfigureAwait(false);
+                db.InsertOrReplace(item);
                 logger.LogTrace("Sync for {EntityType} #{Index} rescheduled (min = {Min}, retries = {Count}).", item.EntityType, item.Index, item.MinLastSync, item.RetryCount);
             }
         }
 
-        public async Task ScheduleMaster()
+        public void ScheduleMaster()
         {
             var db = dbProvider.MainDb;
-            var item = await db.Table<SyncQueueItem>().FirstOrDefaultAsync(x => x.EntityType == EntityType.Master && x.Index == 0);
+            var item = db.Table<SyncQueueItem>().FirstOrDefault(x => x.EntityType == EntityType.Master && x.Index == 0);
             item ??= new SyncQueueItem()
             {
                 EntityType = EntityType.Master,
@@ -58,8 +58,8 @@ namespace SomeDAO.Backend.Services
 
             item.SyncAt = DateTimeOffset.UtcNow;
 
-            await db.InsertOrReplaceAsync(item).ConfigureAwait(false);
-            logger.LogTrace("Sync for {EntityType} #{Index} rescheduled (min = {Min}, retries = {Count}).", item.EntityType, item.Index, item.MinLastSync, item.RetryCount);
+            db.InsertOrReplace(item);
+            logger.LogTrace("Sync for {EntityType} #{Index} [re]scheduled (min = {Min}, retries = {Count}).", item.EntityType, item.Index, item.MinLastSync, item.RetryCount);
         }
     }
 }

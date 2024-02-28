@@ -24,17 +24,17 @@ namespace SomeDAO.Backend.Services
         public List<Language> AllLanguages { get; private set; } = new();
         public Dictionary<string, List<Order>> ActiveOrdersTranslated { get; private set; } = new();
 
-        public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
+        public Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
             var db = scopeServiceProvider.GetRequiredService<IDbProvider>();
 
-            var admins = await db.MainDb.Table<Admin>().ToListAsync().ConfigureAwait(false);
+            var admins = db.MainDb.Table<Admin>().ToList();
             logger.LogTrace("Loaded {Count} admins", admins.Count);
 
-            var users = await db.MainDb.Table<User>().ToListAsync().ConfigureAwait(false);
+            var users = db.MainDb.Table<User>().ToList();
             logger.LogTrace("Loaded {Count} users", users.Count);
 
-            var orders = await db.MainDb.Table<Order>().ToListAsync().ConfigureAwait(false);
+            var orders = db.MainDb.Table<Order>().ToList();
             var activeOrders = orders.Where(x => x.Status == OrderStatus.Active).ToList();
             logger.LogTrace("Loaded {Count} orders (including {Count} active)", orders.Count, activeOrders.Count);
 
@@ -46,10 +46,10 @@ namespace SomeDAO.Backend.Services
 
             logger.LogTrace("Users applied to Orders");
 
-            var categories = await db.MainDb.Table<Category>().ToListAsync().ConfigureAwait(false);
+            var categories = db.MainDb.Table<Category>().ToList();
             logger.LogTrace("Loaded {Count} categories", categories.Count);
 
-            var languages = await db.MainDb.Table<Language>().ToListAsync().ConfigureAwait(false);
+            var languages = db.MainDb.Table<Language>().ToList();
             logger.LogTrace("Loaded {Count} languages", languages.Count);
 
             var hashes = activeOrders.Select(x => x.NameHash)
@@ -61,7 +61,7 @@ namespace SomeDAO.Backend.Services
             var activeOrdersTranslated = new Dictionary<string, List<Order>>(StringComparer.OrdinalIgnoreCase);
             foreach (var language in languages)
             {
-                var translations = await db.MainDb.Table<Translation>().Where(x => x.Language == language.Name && hashes.Contains(x.Hash)).ToListAsync().ConfigureAwait(false);
+                var translations = db.MainDb.Table<Translation>().Where(x => x.Language == language.Name && hashes.Contains(x.Hash)).ToList();
                 var copies = activeOrders.Select(x => x.ShallowCopy()).ToList();
                 foreach (var item in copies)
                 {
@@ -101,6 +101,8 @@ namespace SomeDAO.Backend.Services
                 ActiveOrders.Count,
                 AllCategories.Count,
                 AllLanguages.Count);
+
+            return Task.CompletedTask;
         }
     }
 }

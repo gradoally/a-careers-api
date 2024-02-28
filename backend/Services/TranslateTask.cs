@@ -38,7 +38,7 @@ namespace SomeDAO.Backend.Services
 
             currentTask.Options.Interval = Interval;
 
-            this.languages = await dbProvider.MainDb.Table<Language>().ToListAsync().ConfigureAwait(false);
+            this.languages = dbProvider.MainDb.Table<Language>().ToList();
 
             var (count1, haveMore1) = await TranslateOrders().ConfigureAwait(false);
             var (count2, haveMore2) = await TranslateUsers().ConfigureAwait(false);
@@ -63,7 +63,7 @@ namespace SomeDAO.Backend.Services
 
             do
             {
-                var item = await dbProvider.MainDb.Table<Order>().FirstOrDefaultAsync(x => x.NeedTranslation).ConfigureAwait(false);
+                var item = dbProvider.MainDb.Table<Order>().FirstOrDefault(x => x.NeedTranslation);
                 if (item == null)
                 {
                     return (count, false);
@@ -74,7 +74,7 @@ namespace SomeDAO.Backend.Services
                 await EnsureTranslated(item.TechnicalTask, item.TechnicalTaskHash, item.Language).ConfigureAwait(false);
 
                 item.NeedTranslation = false;
-                await dbProvider.MainDb.UpdateAsync(item).ConfigureAwait(false);
+                dbProvider.MainDb.Update(item);
                 count++;
             }
             while (count < MaxBatch);
@@ -88,7 +88,7 @@ namespace SomeDAO.Backend.Services
 
             do
             {
-                var item = await dbProvider.MainDb.Table<User>().FirstOrDefaultAsync(x => x.NeedTranslation).ConfigureAwait(false);
+                var item = dbProvider.MainDb.Table<User>().FirstOrDefault(x => x.NeedTranslation);
                 if (item == null)
                 {
                     return (count, false);
@@ -97,7 +97,7 @@ namespace SomeDAO.Backend.Services
                 await EnsureTranslated(item.About, item.AboutHash, item.Language).ConfigureAwait(false);
 
                 item.NeedTranslation = false;
-                await dbProvider.MainDb.UpdateAsync(item).ConfigureAwait(false);
+                dbProvider.MainDb.Update(item);
                 count++;
             }
             while (count < MaxBatch);
@@ -112,7 +112,7 @@ namespace SomeDAO.Backend.Services
                 return;
             }
 
-            var existing = await dbProvider.MainDb.Table<Translation>().Where(x => x.Hash == hash).ToListAsync().ConfigureAwait(false);
+            var existing = dbProvider.MainDb.Table<Translation>().Where(x => x.Hash == hash).ToList();
             foreach (var language in languages.Where(x => x.Hash != originalLanguageHash).Select(x => x.Name))
             {
                 if (!existing.Exists(x => x.Language == language))
@@ -128,7 +128,7 @@ namespace SomeDAO.Backend.Services
                         TranslatedText = text.Text,
                         Timestamp = DateTimeOffset.UtcNow,
                     };
-                    await dbProvider.MainDb.InsertAsync(t).ConfigureAwait(false);
+                    dbProvider.MainDb.Insert(t);
 
                     var td = t.TranslatedText.Length > 50 ? t.TranslatedText[..50] + "…" : t.TranslatedText;
                     logger.LogDebug("Translated {Lang}/{Hash}: {Value}", language, Convert.ToBase64String(hash), td);

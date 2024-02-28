@@ -25,17 +25,27 @@ namespace SomeDAO.Backend.Services
 
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
-            var lastSeqnoSetting = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_SEQNO).ConfigureAwait(false);
-            var newSeqno = await dataParser.EnsureSynced(lastSeqnoSetting?.LongValue ?? 0).ConfigureAwait(false);
-            await dbProvider.MainDb.InsertOrReplaceAsync(new Settings(Settings.LAST_SEQNO, newSeqno)).ConfigureAwait(false);
+            var lastSeqno = dbProvider.MainDb.Find<Settings>(Settings.LAST_SEQNO);
+            var lastSeqnoValue = lastSeqno?.LongValue ?? 0;
 
-            var masterAddress = await dbProvider.MainDb.FindAsync<Settings>(Settings.MASTER_ADDRESS).ConfigureAwait(false);
+            var seqno = await dataParser.EnsureSynced(lastSeqnoValue);
 
-            var state = await tonClient.RawGetAccountState(masterAddress.StringValue!).ConfigureAwait(false);
+            // Write occasionally to not spam our DB
+            if (seqno - lastSeqnoValue > 100)
+            {
+                lastSeqno ??= new Settings(Settings.LAST_SEQNO, 0L);
+                lastSeqno.LongValue = seqno;
+                dbProvider.MainDb.InsertOrReplace(lastSeqno);
+            }
 
+            var masterAddress = dbProvider.MainDb.Find<Settings>(Settings.MASTER_ADDRESS);
+            var state = await tonClient.RawGetAccountState(masterAddress!.StringValue!);
+
+            var lastTxLt = state.LastTransactionId.Lt;
             var dataHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(state.Data)));
-            var storedHash = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_MASTER_DATA_HASH).ConfigureAwait(false);
-            var storedLt = await dbProvider.MainDb.FindAsync<Settings>(Settings.LAST_MASTER_TX_LT).ConfigureAwait(false);
+
+            var storedHash = dbProvider.MainDb.Find<Settings>(Settings.LAST_MASTER_DATA_HASH);
+            var storedLt = dbProvider.MainDb.Find<Settings>(Settings.LAST_MASTER_TX_LT);
 
             var needSync = false;
 
@@ -45,15 +55,15 @@ namespace SomeDAO.Backend.Services
                 needSync = true;
             }
 
-            if (state.LastTransactionId.Lt != storedLt?.LongValue)
+            if (lastTxLt != storedLt?.LongValue)
             {
-                logger.LogDebug("Master last TX lt mismatch, sync queued (stored {Value}, actual {Value}).", storedLt?.LongValue, state.LastTransactionId.Lt);
+                logger.LogDebug("Master last TX lt mismatch, sync queued (stored {Value}, actual {Value}).", storedLt?.LongValue, lastTxLt);
                 needSync = true;
             }
 
             if (needSync)
             {
-                await syncScheduler.ScheduleMaster().ConfigureAwait(false);
+                syncScheduler.ScheduleMaster();
                 syncTask.TryRunImmediately();
             }
         }

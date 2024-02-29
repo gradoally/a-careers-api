@@ -14,14 +14,12 @@ namespace SomeDAO.Backend.Api
     [SwaggerResponse(200, "Request is accepted, processed and response contains requested data.")]
     public class SearchController : ControllerBase
     {
-        private readonly ILogger logger;
         private readonly CachedData cachedData;
         private readonly BackendConfig backendConfig;
         private readonly IDbProvider dbProvider;
 
-        public SearchController(ILogger<SearchController> logger, CachedData searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions, IDbProvider dbProvider)
+        public SearchController(CachedData searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions, IDbProvider dbProvider)
         {
-            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.cachedData = searchService ?? throw new ArgumentNullException(nameof(searchService));
             this.backendConfig = new BackendConfig
             {
@@ -165,7 +163,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Address is empty or invalid.")]
         [HttpGet]
-        public async Task<ActionResult<FindResult<User>>> FindUser(string address, string? translateTo = null)
+        public ActionResult<FindResult<User>> FindUser(string address, string? translateTo = null)
         {
             if (string.IsNullOrEmpty(address))
             {
@@ -210,7 +208,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Index is invalid (or user does not exist).")]
         [HttpGet]
-        public async Task<ActionResult<User>> GetUser(long index, string? translateTo = null)
+        public ActionResult<User> GetUser(long index, string? translateTo = null)
         {
             var user = cachedData.AllUsers.Find(x => x.Index == index);
 
@@ -247,7 +245,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Index is invalid (or order does not exist).")]
         [HttpGet]
-        public async Task<ActionResult<Order>> GetOrder(long index, string? translateTo = null)
+        public ActionResult<Order> GetOrder(long index, string? translateTo = null)
         {
             var order = cachedData.AllOrders.Find(x => x.Index == index);
 
@@ -297,7 +295,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Address is empty or invalid.")]
         [HttpGet]
-        public async Task<ActionResult<FindResult<Order>>> FindOrder(string address, string? translateTo = null)
+        public ActionResult<FindResult<Order>> FindOrder(string address, string? translateTo = null)
         {
             if (string.IsNullOrEmpty(address))
             {
@@ -390,7 +388,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' or 'role' value.")]
         [HttpGet]
-        public async Task<ActionResult<List<Order>>> GetUserOrders(long index, string role, int status, string? translateTo = null)
+        public ActionResult<List<Order>> GetUserOrders(long index, string role, int status, string? translateTo = null)
         {
             var mode = role.ToLowerInvariant() switch
             {
@@ -467,7 +465,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="pageSize">Page size (default 10, max 100).</param>
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
         [HttpGet]
-        public async Task<ActionResult<List<OrderActivity>>> GetUserActivity(
+        public ActionResult<List<OrderActivity>> GetUserActivity(
             long index,
             int page = 0,
             int pageSize = 10)
@@ -504,7 +502,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="pageSize">Page size (default 10, max 100).</param>
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
         [HttpGet]
-        public async Task<ActionResult<List<OrderActivity>>> GetOrderActivity(
+        public ActionResult<List<OrderActivity>> GetOrderActivity(
             long index,
             int page = 0,
             int pageSize = 10)

@@ -47,7 +47,7 @@
 
             writer.WriteLine("<html><body><h1>Health check page</h1><dl>");
 
-            await foreach (var value in GetValues(context))
+            foreach (var value in GetValues(context))
             {
                 writer.WriteLine("<dt>" + value.key + "</dt><dd>" + value.value + "</dd>");
             }
@@ -70,7 +70,7 @@
             using var writer = new Utf8JsonWriter(stream);
 
             writer.WriteStartObject();
-            await foreach (var value in GetValues(context))
+            foreach (var value in GetValues(context))
             {
                 writer.WritePropertyName(value.key);
                 JsonSerializer.Serialize(writer, value.value, value.value.GetType());
@@ -83,7 +83,7 @@
             await stream.CopyToAsync(response.Body).ConfigureAwait(false);
         }
 
-        private async IAsyncEnumerable<(string key, object value)> GetValues(HttpContext context)
+        private IEnumerable<(string key, object value)> GetValues(HttpContext context)
         {
             var allOk = true;
 

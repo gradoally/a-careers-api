@@ -50,50 +50,16 @@ namespace SomeDAO.Backend.Services
                 return;
             }
 
-            if (dict.TryGetValue(PropCategory, out var s))
-            {
-                value.Category = Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
-            }
-
-            if (dict.TryGetValue(PropCanApproveUser, out s))
-            {
-                value.CanApproveUser = s.LoadBit();
-            }
-
-            if (dict.TryGetValue(PropCanRevokeUser, out s))
-            {
-                value.CanRevokeUser = s.LoadBit();
-            }
-
-            if (dict.TryGetValue(PropNickname, out s))
-            {
-                value.Nickname = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropAbout, out s))
-            {
-                value.About = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropWebsite, out s))
-            {
-                value.Website = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropPortfolio, out s))
-            {
-                value.Portfolio = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropResume, out s))
-            {
-                value.Resume = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropSpecialization, out s))
-            {
-                value.Specialization = s.LoadStringSnake(true) ?? string.Empty;
-            }
+            Slice? s;
+            value.Category = dict.TryGetValue(PropCategory, out s) ? Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant() : default;
+            value.CanApproveUser = dict.TryGetValue(PropCanApproveUser, out s) && s.LoadBit();
+            value.CanRevokeUser = dict.TryGetValue(PropCanRevokeUser, out s) && s.LoadBit();
+            value.Nickname = dict.TryGetValue(PropNickname, out s) ? s.LoadStringSnake(true) : default;
+            value.About = dict.TryGetValue(PropAbout, out s) ? s.LoadStringSnake(true) : default;
+            value.Website = dict.TryGetValue(PropWebsite, out s) ? s.LoadStringSnake(true) : default;
+            value.Portfolio = dict.TryGetValue(PropPortfolio, out s) ? s.LoadStringSnake(true) : default;
+            value.Resume = dict.TryGetValue(PropResume, out s) ? s.LoadStringSnake(true) : default;
+            value.Specialization = dict.TryGetValue(PropSpecialization, out s) ? s.LoadStringSnake(true) : default;
         }
 
         public static void FillUserContent(IUserContent value, Cell fromDict)
@@ -104,55 +70,17 @@ namespace SomeDAO.Backend.Services
                 return;
             }
 
-            if (dict.TryGetValue(PropIsUser, out var s))
-            {
-                value.IsUser = s.LoadBit();
-            }
-
-            if (dict.TryGetValue(PropIsFreelancer, out s))
-            {
-                value.IsFreelancer = s.LoadBit();
-            }
-
-            if (dict.TryGetValue(PropNickname, out s))
-            {
-                value.Nickname = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropTelegram, out s))
-            {
-                value.Telegram = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropAbout, out s))
-            {
-                value.About = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropWebsite, out s))
-            {
-                value.Website = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropPortfolio, out s))
-            {
-                value.Portfolio = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropResume, out s))
-            {
-                value.Resume = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropSpecialization, out s))
-            {
-                value.Specialization = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropLanguage, out s))
-            {
-                value.Language = s.LoadStringSnake(true) ?? string.Empty;
-            }
+            Slice? s;
+            value.IsUser = dict.TryGetValue(PropIsUser, out s) && s.LoadBit();
+            value.IsFreelancer = dict.TryGetValue(PropIsFreelancer, out s) && s.LoadBit();
+            value.Nickname = dict.TryGetValue(PropNickname, out s) ? s.LoadStringSnake(true) : default;
+            value.Telegram = dict.TryGetValue(PropTelegram, out s) ? s.LoadStringSnake(true) : default;
+            value.About = dict.TryGetValue(PropAbout, out s) ? s.LoadStringSnake(true) : default;
+            value.Website = dict.TryGetValue(PropWebsite, out s) ? s.LoadStringSnake(true) : default;
+            value.Portfolio = dict.TryGetValue(PropPortfolio, out s) ? s.LoadStringSnake(true) : default;
+            value.Resume = dict.TryGetValue(PropResume, out s) ? s.LoadStringSnake(true) : default;
+            value.Specialization = dict.TryGetValue(PropSpecialization, out s) ? s.LoadStringSnake(true) : default;
+            value.Language = dict.TryGetValue(PropLanguage, out s) ? Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant() : default;
         }
 
         public static void FillOrderContent(IOrderContent value, Cell fromDict)
@@ -163,41 +91,14 @@ namespace SomeDAO.Backend.Services
                 return;
             }
 
-            if (dict.TryGetValue(PropCategory, out var s))
-            {
-                value.Category = Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
-            }
-
-            if (dict.TryGetValue(PropLanguage, out s))
-            {
-                value.Language = Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant();
-            }
-
-            if (dict.TryGetValue(PropName, out s))
-            {
-                value.Name = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropPrice, out s))
-            {
-                value.Price = TonUtils.Coins.FromNano(s.LoadCoins());
-            }
-
-            if (dict.TryGetValue(PropDeadline, out s))
-            {
-                var d = s.LoadUInt(32);
-                value.Deadline = DateTimeOffset.FromUnixTimeSeconds(d);
-            }
-
-            if (dict.TryGetValue(PropDescription, out s))
-            {
-                value.Description = s.LoadStringSnake(true) ?? string.Empty;
-            }
-
-            if (dict.TryGetValue(PropTechnicalTask, out s))
-            {
-                value.TechnicalTask = s.LoadStringSnake(true) ?? string.Empty;
-            }
+            Slice? s;
+            value.Category = dict.TryGetValue(PropCategory, out s) ? Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant() : default;
+            value.Language = dict.TryGetValue(PropLanguage, out s) ? Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant() : default;
+            value.Name = dict.TryGetValue(PropName, out s) ? s.LoadStringSnake(true) : default;
+            value.Price = dict.TryGetValue(PropPrice, out s) ? TonUtils.Coins.FromNano(s.LoadCoins()) : default;
+            value.Deadline = dict.TryGetValue(PropDeadline, out s) ? DateTimeOffset.FromUnixTimeSeconds(s.LoadUInt(32)) : default;
+            value.Description = dict.TryGetValue(PropDescription, out s) ? s.LoadStringSnake(true) : default;
+            value.TechnicalTask = dict.TryGetValue(PropTechnicalTask, out s) ? s.LoadStringSnake(true) : default;
         }
 
         public async Task<long> EnsureSynced(long lastKnownSeqno = 0)

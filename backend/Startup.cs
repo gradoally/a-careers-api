@@ -40,8 +40,8 @@ namespace SomeDAO.Backend
             services.Configure<TonOptions>(o => o.Options.KeystoreType = new KeyStoreTypeDirectory(bo.CacheDirectory));
             services.AddSingleton<ITonClient, TonClient>();
 
-            services.AddSingleton<IDbProvider, DbProvider>();
-            services.AddSingleton<DataParser>();
+            services.AddScoped<IDbProvider, DbProvider>();
+            services.AddScoped<DataParser>();
             services.AddSingleton<CachedData>();
             services.AddScoped<SyncSchedulerService>();
 

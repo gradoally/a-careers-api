@@ -103,8 +103,8 @@ namespace SomeDAO.Backend.Services
 
         public async Task<long> EnsureSynced(long lastKnownSeqno = 0)
         {
-            await tonClient.InitIfNeeded().ConfigureAwait(false);
-            var blockId = await tonClient.Sync().ConfigureAwait(false);
+            await tonClient.InitIfNeeded();
+            var blockId = await tonClient.Sync();
             logger.LogDebug("Synced to masterchain block {Seqno}.", blockId.Seqno);
 
             if (blockId.Seqno < lastKnownSeqno)
@@ -118,9 +118,9 @@ namespace SomeDAO.Backend.Services
 
         public async Task<bool> UpdateAdmin(Admin value)
         {
-            await tonClient.InitIfNeeded().ConfigureAwait(false);
+            await tonClient.InitIfNeeded();
 
-            var state = await tonClient.RawGetAccountState(value.Address).ConfigureAwait(false);
+            var state = await tonClient.RawGetAccountState(value.Address);
 
             value.LastSync = state.SyncUtime;
 
@@ -132,9 +132,9 @@ namespace SomeDAO.Backend.Services
             value.LastTxLt = state.LastTransactionId.Lt;
             value.LastTxHash = state.LastTransactionId.Hash;
 
-            var smc = await tonClient.SmcLoad(value.Address).ConfigureAwait(false);
-            var data = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_admin_data")).ConfigureAwait(false);
-            await tonClient.SmcForget(smc.Id).ConfigureAwait(false);
+            var smc = await tonClient.SmcLoad(value.Address);
+            var data = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_admin_data"));
+            await tonClient.SmcForget(smc.Id);
 
             if (data.ExitCode != 0)
             {
@@ -165,9 +165,9 @@ namespace SomeDAO.Backend.Services
 
         public async Task<bool> UpdateUser(User value)
         {
-            await tonClient.InitIfNeeded().ConfigureAwait(false);
+            await tonClient.InitIfNeeded();
 
-            var state = await tonClient.RawGetAccountState(value.Address).ConfigureAwait(false);
+            var state = await tonClient.RawGetAccountState(value.Address);
 
             value.LastSync = state.SyncUtime;
 
@@ -179,9 +179,9 @@ namespace SomeDAO.Backend.Services
             value.LastTxLt = state.LastTransactionId.Lt;
             value.LastTxHash = state.LastTransactionId.Hash;
 
-            var smc = await tonClient.SmcLoad(value.Address).ConfigureAwait(false);
-            var data = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_user_data")).ConfigureAwait(false);
-            await tonClient.SmcForget(smc.Id).ConfigureAwait(false);
+            var smc = await tonClient.SmcLoad(value.Address);
+            var data = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_user_data"));
+            await tonClient.SmcForget(smc.Id);
 
             if (data.ExitCode != 0)
             {
@@ -212,9 +212,9 @@ namespace SomeDAO.Backend.Services
 
         public async Task<bool> UpdateOrder(Order value)
         {
-            await tonClient.InitIfNeeded().ConfigureAwait(false);
+            await tonClient.InitIfNeeded();
 
-            var state = await tonClient.RawGetAccountState(value.Address).ConfigureAwait(false);
+            var state = await tonClient.RawGetAccountState(value.Address);
 
             value.LastSync = state.SyncUtime;
 
@@ -226,21 +226,21 @@ namespace SomeDAO.Backend.Services
             value.LastTxLt = state.LastTransactionId.Lt;
             value.LastTxHash = state.LastTransactionId.Hash;
 
-            var smc = await tonClient.SmcLoad(value.Address).ConfigureAwait(false);
+            var smc = await tonClient.SmcLoad(value.Address);
 
-            var data1 = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_order_data")).ConfigureAwait(false);
+            var data1 = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_order_data"));
             if (data1.ExitCode != 0)
             {
                 throw new NonZeroExitCodeException(data1.ExitCode, value.Address, "get_order_data");
             }
 
-            var data2 = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_responses")).ConfigureAwait(false);
+            var data2 = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_responses"));
             if (data2.ExitCode != 0)
             {
                 throw new NonZeroExitCodeException(data2.ExitCode, value.Address, "get_responses");
             }
 
-            await tonClient.SmcForget(smc.Id).ConfigureAwait(false);
+            await tonClient.SmcForget(smc.Id);
 
             // Method returns:
             // (int, int, slice, int, int, int, slice, slice, cell) get_order_data()
@@ -366,11 +366,11 @@ namespace SomeDAO.Backend.Services
 
         public async IAsyncEnumerable<Transaction> EnumerateTransactions(string address, TransactionId start, long endLt)
         {
-            await tonClient.InitIfNeeded().ConfigureAwait(false);
+            await tonClient.InitIfNeeded();
 
             while (!start.IsEmpty())
             {
-                var res = await tonClient.RawGetTransactions(address, start).ConfigureAwait(false);
+                var res = await tonClient.RawGetTransactions(address, start);
                 if (res.TransactionsList.Count == 0)
                 {
                     yield break;
@@ -399,9 +399,9 @@ namespace SomeDAO.Backend.Services
 
         public async Task<(DateTimeOffset syncTime, TransactionId lastTx, string stateHash, long nextAdminIndex, long nextUserIndex, long nextOrderIndex, List<Category>? categories, List<Language>? languages)> ParseMasterData(string address)
         {
-            await tonClient.InitIfNeeded().ConfigureAwait(false);
+            await tonClient.InitIfNeeded();
 
-            var state = await tonClient.RawGetAccountState(address).ConfigureAwait(false);
+            var state = await tonClient.RawGetAccountState(address);
 
             var dataHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(state.Data)));
 
@@ -454,9 +454,9 @@ namespace SomeDAO.Backend.Services
 
         private async IAsyncEnumerable<(long index, string address)> EnumerateChildAddresses(string masterAddress, string methodName, long fromIndex, long toIndex)
         {
-            await tonClient.InitIfNeeded().ConfigureAwait(false);
+            await tonClient.InitIfNeeded();
 
-            var smc = await tonClient.SmcLoad(masterAddress).ConfigureAwait(false);
+            var smc = await tonClient.SmcLoad(masterAddress);
 
             while (fromIndex < toIndex)
             {
@@ -465,7 +465,7 @@ namespace SomeDAO.Backend.Services
                     new TonLibDotNet.Types.Tvm.StackEntryNumber(new TonLibDotNet.Types.Tvm.NumberDecimal(fromIndex)),
                 };
 
-                var resp = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName(methodName), args).ConfigureAwait(false);
+                var resp = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName(methodName), args);
 
                 var adr = resp.Stack[0].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(true);
                 yield return (fromIndex, adr);

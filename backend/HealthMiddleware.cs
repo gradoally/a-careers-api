@@ -125,11 +125,7 @@
             yield return ("Entity C", cd.AllCategories.Count);
             yield return ("Entity L", cd.AllLanguages.Count);
 
-            var dbProvider = context.RequestServices.GetRequiredService<IDbProvider>();
-            var lastSeqno = dbProvider.MainDb.Find<Settings>(Settings.LAST_SEQNO);
-            var lastSeqnoValue = lastSeqno?.LongValue ?? 0;
-            allOk &= lastSeqnoValue > 0;
-            yield return ("Masterchain seqno", lastSeqnoValue.ToString(CultureInfo.InvariantCulture));
+            yield return ("Masterchain seqno", MasterTrackerTask.LastKnownSeqno.ToString(CultureInfo.InvariantCulture));
 
             foreach (var taskType in Startup.RegisteredTasks)
             {

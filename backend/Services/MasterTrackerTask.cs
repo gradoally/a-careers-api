@@ -23,6 +23,8 @@ namespace SomeDAO.Backend.Services
             this.syncTask = syncTask ?? throw new ArgumentNullException(nameof(syncTask));
         }
 
+        public static long LastKnownSeqno { get; private set; }
+
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
             var lastSeqno = dbProvider.MainDb.Find<Settings>(Settings.LAST_SEQNO);
@@ -37,6 +39,8 @@ namespace SomeDAO.Backend.Services
                 lastSeqno.LongValue = seqno;
                 dbProvider.MainDb.InsertOrReplace(lastSeqno);
             }
+
+            LastKnownSeqno = seqno;
 
             var masterAddress = dbProvider.MainDb.Find<Settings>(Settings.MASTER_ADDRESS);
             var state = await tonClient.RawGetAccountState(masterAddress!.StringValue!);

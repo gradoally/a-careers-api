@@ -203,7 +203,7 @@ namespace SomeDAO.Backend.Services
             var content = data.Stack[5].ToBoc();
 
             value.UserAddress = userAddress;
-            value.RevokedAt = revokedAt == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(revokedAt);
+            value.RevokedAt = revokedAt;
 
             FillUserContent(value, content.RootCells[0]);
 

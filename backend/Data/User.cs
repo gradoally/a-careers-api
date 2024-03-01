@@ -24,7 +24,31 @@ namespace SomeDAO.Backend.Data
         [NotNull, Indexed]
         public string UserAddress { get; set; } = string.Empty;
 
-        public DateTimeOffset? RevokedAt { get; set; }
+        public int RevokedAt { get; set; }
+
+        [Ignore]
+        public string UserStatus {
+            get {
+                return RevokedAt switch
+                {
+                    0 => "active",
+                    1 => "moderation",
+                    _ => "banned",
+                };
+            }
+        }
+
+        [Ignore]
+        public DateTimeOffset? RevokeDate {
+            get {
+                return RevokedAt switch
+                {
+                    0 => null,
+                    1 => null,
+                    _ => DateTimeOffset.FromUnixTimeSeconds(RevokedAt),
+                };
+            }
+        }
 
         #region IUserContent
 

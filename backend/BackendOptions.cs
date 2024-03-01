@@ -8,6 +8,8 @@
 
         public string DatabaseFile { get; set; } = "./backend.sqlite";
 
+        public string? NotificationsEndpoint { get; set; }
+
         public string CacheDirectory { get; set; } = "./cache";
 
         public TimeSpan SearchCacheForceReloadInterval { get; set; } = TimeSpan.FromMinutes(5);

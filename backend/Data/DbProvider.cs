@@ -36,6 +36,7 @@ namespace SomeDAO.Backend.Data
             MainDb.CreateTable<Category>();
             MainDb.CreateTable<Language>();
             MainDb.CreateTable<Translation>();
+            MainDb.CreateTable<NotificationQueueItem>();
 
             UpdateDb(MainDb);
 

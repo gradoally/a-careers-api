@@ -1,68 +1,86 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="SomeDAO.Backend.Data.Order">
-    <Position X="6.25" Y="0.75" Width="1.5" />
+    <Position X="4.25" Y="0.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAEAAAAAAAAAAAAAAAAAAAgAAACAAEAAAABAAA=</HashCode>
+      <HashCode>AAEKAAQEDUgkQAAACCAAAQQAQgAgQCACEAGAABABCgA=</HashCode>
       <FileName>Data\Order.cs</FileName>
     </TypeIdentifier>
+    <Lollipop Position="0.2" />
   </Class>
   <Class Name="SomeDAO.Backend.Data.Settings">
-    <Position X="10" Y="3.25" Width="1.5" />
+    <Position X="10" Y="4.25" Width="1.5" />
     <Compartments>
       <Compartment Name="Fields" Collapsed="true" />
       <Compartment Name="Methods" Collapsed="true" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AAACAAAAAAAAAAAEIAAAAAAAAAAAAApgAAAAAAAAAAA=</HashCode>
+      <HashCode>AAACAAACAAAAgIAGIAAAgAAAAQAAAAJgAAAAAAAQAQA=</HashCode>
       <FileName>Data\Settings.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="SomeDAO.Backend.Data.Admin">
-    <Position X="1.5" Y="0.75" Width="1.5" />
+    <Position X="0.75" Y="0.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAEAAAAABAA=</HashCode>
+      <HashCode>EAADAAAABAgAgAGAAAAAAIAAQAAAAAACAAGAAEgADEA=</HashCode>
       <FileName>Data\Admin.cs</FileName>
     </TypeIdentifier>
-  </Class>
-  <Class Name="SomeDAO.Backend.Data.AdminContent">
-    <Position X="1.5" Y="3" Width="1.5" />
-    <Compartments>
-      <Compartment Name="Fields" Collapsed="true" />
-      <Compartment Name="Methods" Collapsed="true" />
-    </Compartments>
-    <TypeIdentifier>
-      <HashCode>AkAJBAAEBCCAgAGACAwAIIAABAABABAgBAAAAkoACEE=</HashCode>
-      <FileName>Data\AdminContent.cs</FileName>
-    </TypeIdentifier>
+    <Lollipop Position="0.2" />
   </Class>
   <Class Name="SomeDAO.Backend.Data.User">
-    <Position X="4" Y="0.75" Width="1.5" />
+    <Position X="2.5" Y="0.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAACAAAAAAAAAAAAAAAAAAAAACAAEAAAAABAA=</HashCode>
+      <HashCode>BAADAgAADCgAgAEAAAAAAAAAQQAQAAACAAGAAEgAJkA=</HashCode>
       <FileName>Data\User.cs</FileName>
     </TypeIdentifier>
+    <Lollipop Position="0.2" />
   </Class>
-  <Class Name="SomeDAO.Backend.Data.UserContent">
-    <Position X="4" Y="3" Width="1.5" />
-    <Compartments>
-      <Compartment Name="Fields" Collapsed="true" />
-      <Compartment Name="Methods" Collapsed="true" />
-    </Compartments>
+  <Class Name="SomeDAO.Backend.Data.Category">
+    <Position X="10" Y="0.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>BEABAgAEBCCAgAEAAAyAIAAABAgRAABgBAAAAkqCAEA=</HashCode>
-      <FileName>Data\UserContent.cs</FileName>
+      <HashCode>AAAAAAAAAAIAAAAAEAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Data\Category.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="SomeDAO.Backend.Data.OrderContent">
-    <Position X="6.25" Y="3.25" Width="1.5" />
+  <Class Name="SomeDAO.Backend.Data.Language">
+    <Position X="10" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAIAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Data\Language.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SomeDAO.Backend.Data.OrderActivity">
+    <Position X="6" Y="1.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAUCAAAAAAQAAAAAAAACAACAQAAAAIAAAAAAAAAIAAQ=</HashCode>
+      <FileName>Data\OrderActivity.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SomeDAO.Backend.Data.SyncQueueItem">
+    <Position X="8.25" Y="3" Width="1.5" />
     <Compartments>
-      <Compartment Name="Fields" Collapsed="true" />
       <Compartment Name="Methods" Collapsed="true" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AAAIBAARCSAgAAAAAgQAAAQBAwAJACBAAAUBAQAACAA=</HashCode>
-      <FileName>Data\OrderContent.cs</FileName>
+      <HashCode>QAACAAAAAABAgAAAAAAAAAAAQAAAAAAAAAEAAAAAAAA=</HashCode>
+      <FileName>Data\SyncQueueItem.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SomeDAO.Backend.Data.Translation">
+    <Position X="8.25" Y="0.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAACAIAAAAAAAACAABAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Data\Translation.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SomeDAO.Backend.Data.NotificationQueueItem">
+    <Position X="8.25" Y="5.5" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAA=</HashCode>
+      <FileName>Data\NotificationQueueItem.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Font Name="Segoe UI" Size="9" />

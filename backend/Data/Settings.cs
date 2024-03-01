@@ -13,6 +13,7 @@ namespace SomeDAO.Backend.Data
         public const string NEXT_INDEX_ORDER = "NEXT_INDEX_ORDER";
         public const string IN_MAINNET = "IN_MAINNET";
         public const string LAST_SEQNO = "LAST_SEQNO";
+        public const string IGNORE_NOTIFICATIONS_BEFORE = "IGNORE_NOTIFICATIONS_BEFORE";
 
         [Obsolete("For data layer only")]
         public Settings()

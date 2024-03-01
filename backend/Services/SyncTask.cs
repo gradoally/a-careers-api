@@ -20,8 +20,9 @@ namespace SomeDAO.Backend.Services
         private readonly CachedData cachedData;
         private readonly ITask cachedDataTask;
         private readonly ITask translateTask;
+        private readonly ITask notificationTask;
 
-        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, DataParser dataParser, SyncSchedulerService syncScheduler, CachedData cachedData, ITask<CachedData> cachedDataTask, ITask<TranslateTask> translateTask)
+        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, DataParser dataParser, SyncSchedulerService syncScheduler, CachedData cachedData, ITask<CachedData> cachedDataTask, ITask<TranslateTask> translateTask, ITask<NotificationTask> notificationTask)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
@@ -30,6 +31,7 @@ namespace SomeDAO.Backend.Services
             this.cachedData = cachedData ?? throw new ArgumentNullException(nameof(cachedData));
             this.cachedDataTask = cachedDataTask;
             this.translateTask = translateTask;
+            this.notificationTask = notificationTask;
         }
 
         public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
@@ -112,6 +114,7 @@ namespace SomeDAO.Backend.Services
             {
                 cachedDataTask.TryRunImmediately();
                 translateTask.TryRunImmediately();
+                notificationTask.TryRunImmediately();
             }
         }
 
@@ -182,6 +185,7 @@ namespace SomeDAO.Backend.Services
                 {
                     logger.LogDebug("Tx for Order {Address} added: Op {OpCode} at {Time} ({Lt}/{Hash})", order.Address, activity.OpCode, activity.Timestamp, activity.TxLt, activity.TxHash);
                     dbProvider.MainDb.Insert(activity);
+                    dbProvider.MainDb.Insert(new NotificationQueueItem(activity.Id, activity.Timestamp));
                 }
                 else
                 {

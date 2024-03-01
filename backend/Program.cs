@@ -21,6 +21,13 @@ namespace SomeDAO.Backend
                 var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(Program));
                 CheckMasterAddress(db, logger, scope.ServiceProvider);
                 CheckMainnet(db, logger, scope.ServiceProvider);
+
+                var inb = db.MainDb.Find<Settings>(Settings.IGNORE_NOTIFICATIONS_BEFORE);
+                if (inb == null)
+                {
+                    inb = new Settings(Settings.IGNORE_NOTIFICATIONS_BEFORE, DateTimeOffset.UtcNow);
+                    db.MainDb.Insert(inb);
+                }
             }
 
             await host.RunAsync();

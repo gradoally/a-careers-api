@@ -6,6 +6,8 @@ namespace SomeDAO.Backend.Data
     {
         SQLiteConnection MainDb { get; }
 
+        void Migrate();
+
         Task Reconnect();
     }
 }

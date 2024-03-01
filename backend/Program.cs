@@ -16,6 +16,8 @@ namespace SomeDAO.Backend
             using (var scope = host.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<IDbProvider>();
+                db.Migrate();
+
                 var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(Program));
                 CheckMasterAddress(db, logger, scope.ServiceProvider);
                 CheckMainnet(db, logger, scope.ServiceProvider);

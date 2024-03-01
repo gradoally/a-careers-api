@@ -25,6 +25,23 @@ namespace SomeDAO.Backend.Data
 
         public SQLiteConnection MainDb { get; private set; }
 
+        public void Migrate()
+        {
+            MainDb.CreateTable<Settings>();
+            MainDb.CreateTable<Admin>();
+            MainDb.CreateTable<User>();
+            MainDb.CreateTable<Order>();
+            MainDb.CreateTable<SyncQueueItem>();
+            MainDb.CreateTable<OrderActivity>();
+            MainDb.CreateTable<Category>();
+            MainDb.CreateTable<Language>();
+            MainDb.CreateTable<Translation>();
+
+            UpdateDb(MainDb);
+
+            logger.LogInformation("Connected to {FilePath}", MainDb.DatabasePath);
+        }
+
         public async Task Reconnect()
         {
             var olddb = MainDb;
@@ -57,22 +74,7 @@ namespace SomeDAO.Backend.Data
         {
             var file = Path.GetFullPath(options.DatabaseFile);
             var conn = new SQLiteConnection(file);
-            logger.LogInformation("Connected to {FilePath}", file);
-
             conn.ExecuteScalar<string>("PRAGMA journal_mode=WAL");
-
-            conn.CreateTable<Settings>();
-            conn.CreateTable<Admin>();
-            conn.CreateTable<User>();
-            conn.CreateTable<Order>();
-            conn.CreateTable<SyncQueueItem>();
-            conn.CreateTable<OrderActivity>();
-            conn.CreateTable<Category>();
-            conn.CreateTable<Language>();
-            conn.CreateTable<Translation>();
-
-            UpdateDb(conn);
-
             return conn;
         }
 

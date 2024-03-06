@@ -39,8 +39,10 @@ namespace SomeDAO.Backend
             services.AddSingleton<CachedData>();
             services.AddScoped<ISearchCacheUpdater, LocalSeachCacheUpdater>();
             services.AddSingleton<SearchCacheUpdateMiddleware>();
+            services.AddSingleton<IndexerControlTask>();
 
             services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(1)));
+            services.AddTask<IndexerControlTask>(o => o.AutoStart(IndexerControlTask.Interval));
 
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(o =>
@@ -70,6 +72,7 @@ namespace SomeDAO.Backend
             RegisteredTasks = new List<Type>
                 {
                     typeof(ITask<CachedData>),
+                    typeof(ITask<IndexerControlTask>),
                 }
                 .AsReadOnly();
         }

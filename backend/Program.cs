@@ -9,11 +9,13 @@ namespace SomeDAO.Backend
 
     public static class Program
     {
+        public const string StartAsIndexerArg = "--indexer";
+
         public static bool InIndexerMode { get; private set; }
 
         public static async Task Main(string[] args)
         {
-            InIndexerMode = args.Contains("--indexer", StringComparer.OrdinalIgnoreCase);
+            InIndexerMode = args.Contains(StartAsIndexerArg, StringComparer.OrdinalIgnoreCase);
 
             var host = (InIndexerMode ? CreateIndexerHostBuilder(args) : CreateApiHostBuilder(args)).Build();
 

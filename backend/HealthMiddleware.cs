@@ -127,7 +127,7 @@
 
             yield return ("Masterchain seqno", MasterTrackerTask.LastKnownSeqno.ToString(CultureInfo.InvariantCulture));
 
-            foreach (var taskType in Startup.RegisteredTasks)
+            foreach (var taskType in StartupApi.RegisteredTasks)
             {
                 var name = taskType.GenericTypeArguments[0].Name;
                 var task = (RecurrentTasks.ITask)context.RequestServices.GetRequiredService(taskType);

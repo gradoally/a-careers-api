@@ -44,6 +44,7 @@ namespace SomeDAO.Backend
             services.AddScoped<DataParser>();
             services.AddSingleton<CachedData>();
             services.AddScoped<SyncSchedulerService>();
+            services.AddScoped<ISearchCacheUpdater, LocalSeachCacheUpdater>();
 
             services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(1)));
             services.AddTask<SyncTask>(o => o.AutoStart(SyncTask.Interval));

@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using RecurrentTasks;
+﻿using RecurrentTasks;
 using SomeDAO.Backend.Data;
 
 namespace SomeDAO.Backend.Services

@@ -14,15 +14,13 @@ namespace SomeDAO.Backend.Services
 
         private readonly ILogger logger;
         private readonly IDbProvider dbProvider;
-        private readonly CachedData cachedData;
         private readonly BackendOptions options;
         private readonly IHttpClientFactory httpClientFactory;
 
-        public NotificationTask(ILogger<NotificationTask> logger, IDbProvider dbProvider, CachedData cachedData, IOptions<BackendOptions> options, IHttpClientFactory httpClientFactory)
+        public NotificationTask(ILogger<NotificationTask> logger, IDbProvider dbProvider, IOptions<BackendOptions> options, IHttpClientFactory httpClientFactory)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
-            this.cachedData = cachedData ?? throw new ArgumentNullException(nameof(cachedData));
             this.options = options?.Value ?? throw new ArgumentNullException(nameof(options));
             this.httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         }
@@ -66,7 +64,7 @@ namespace SomeDAO.Backend.Services
                     var activity = db.Find<OrderActivity>(next.OrderActivityId);
                     if (activity != null)
                     {
-                        activity.Order = cachedData.AllOrders.Find(x => x.Id == activity.OrderId);
+                        activity.Order = db.Find<Order>(activity.OrderId);
 
                         using var content = JsonContent.Create(activity);
                         using var req = new HttpRequestMessage(HttpMethod.Post, options.NotificationsEndpoint) { Content = content };

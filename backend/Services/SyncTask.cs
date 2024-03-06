@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using RecurrentTasks;
 using SomeDAO.Backend.Data;
 using TonLibDotNet;
@@ -17,19 +16,17 @@ namespace SomeDAO.Backend.Services
         private readonly IDbProvider dbProvider;
         private readonly DataParser dataParser;
         private readonly SyncSchedulerService syncScheduler;
-        private readonly CachedData cachedData;
-        private readonly ITask cachedDataTask;
+        private readonly ISearchCacheUpdater searchCacheUpdater;
         private readonly ITask translateTask;
         private readonly ITask notificationTask;
 
-        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, DataParser dataParser, SyncSchedulerService syncScheduler, CachedData cachedData, ITask<CachedData> cachedDataTask, ITask<TranslateTask> translateTask, ITask<NotificationTask> notificationTask)
+        public SyncTask(ILogger<SyncTask> logger, IDbProvider dbProvider, DataParser dataParser, SyncSchedulerService syncScheduler, ISearchCacheUpdater searchCacheUpdater, ITask<TranslateTask> translateTask, ITask<NotificationTask> notificationTask)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
             this.dataParser = dataParser ?? throw new ArgumentNullException(nameof(dataParser));
             this.syncScheduler = syncScheduler ?? throw new ArgumentNullException(nameof(syncScheduler));
-            this.cachedData = cachedData ?? throw new ArgumentNullException(nameof(cachedData));
-            this.cachedDataTask = cachedDataTask;
+            this.searchCacheUpdater = searchCacheUpdater;
             this.translateTask = translateTask;
             this.notificationTask = notificationTask;
         }
@@ -112,7 +109,7 @@ namespace SomeDAO.Backend.Services
 
             if (counter > 0)
             {
-                cachedDataTask.TryRunImmediately();
+                await searchCacheUpdater.UpdateSearchCache();
                 translateTask.TryRunImmediately();
                 notificationTask.TryRunImmediately();
             }
@@ -311,21 +308,21 @@ namespace SomeDAO.Backend.Services
                     {
                         var adr = TonUtils.Address.SetBounceable(item.Value, true);
 
-                        var a = cachedData.AllAdmins.Find(x => StringComparer.Ordinal.Equals(x.Address, adr));
+                        var a = db.Find<Admin>(x => x.Address == adr);
                         if (a != null)
                         {
                             syncScheduler.Schedule(a);
                             found++;
                         }
 
-                        var u = cachedData.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.Address, adr));
+                        var u = db.Find<User>(x => x.Address == adr);
                         if (u != null)
                         {
                             syncScheduler.Schedule(u);
                             found++;
                         }
 
-                        var o = cachedData.AllOrders.Find(x => StringComparer.Ordinal.Equals(x.Address, adr));
+                        var o = db.Find<Order>(x => x.Address == adr);
                         if (o != null)
                         {
                             syncScheduler.Schedule(o);

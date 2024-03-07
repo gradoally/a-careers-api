@@ -14,7 +14,8 @@ namespace SomeDAO.Backend
 
         public Task InvokeAsync(HttpContext context, RequestDelegate next)
         {
-            if (!path.HasValue || !path.Equals(context.Request.Path)) {
+            if (!path.HasValue || !path.Equals(context.Request.Path))
+            {
                 return next(context);
             }
 

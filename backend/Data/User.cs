@@ -27,8 +27,10 @@ namespace SomeDAO.Backend.Data
         public int RevokedAt { get; set; }
 
         [Ignore]
-        public string UserStatus {
-            get {
+        public string UserStatus
+        {
+            get
+            {
                 return RevokedAt switch
                 {
                     0 => "active",
@@ -39,8 +41,10 @@ namespace SomeDAO.Backend.Data
         }
 
         [Ignore]
-        public DateTimeOffset? RevokeDate {
-            get {
+        public DateTimeOffset? RevokeDate
+        {
+            get
+            {
                 return RevokedAt switch
                 {
                     0 => null,

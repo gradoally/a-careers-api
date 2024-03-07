@@ -1,7 +1,7 @@
-﻿using TonLibDotNet.Types;
-using TonLibDotNet;
-using SomeDAO.Backend.Data;
+﻿using SomeDAO.Backend.Data;
 using SomeDAO.Backend.Services;
+using TonLibDotNet;
+using TonLibDotNet.Types;
 
 namespace SomeDAO.Backend
 {

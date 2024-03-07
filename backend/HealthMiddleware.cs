@@ -125,7 +125,7 @@
             yield return ("Entity C", cd.AllCategories.Count);
             yield return ("Entity L", cd.AllLanguages.Count);
 
-            yield return ("Masterchain seqno", MasterTrackerTask.LastKnownSeqno.ToString(CultureInfo.InvariantCulture));
+            yield return ("Masterchain seqno", cd.LastKnownSeqno.ToString(CultureInfo.InvariantCulture));
 
             foreach (var taskType in StartupApi.RegisteredTasks)
             {

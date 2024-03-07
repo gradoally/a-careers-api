@@ -36,6 +36,7 @@ namespace SomeDAO.Backend
             optionsSection.Bind(bo);
 
             services.AddScoped<IDbProvider, DbProvider>();
+            services.AddScoped(sp => new Lazy<IDbProvider>(() => sp.GetRequiredService<IDbProvider>()));
             services.AddSingleton<CachedData>();
             services.AddScoped<ISearchCacheUpdater, LocalSeachCacheUpdater>();
             services.AddSingleton<SearchCacheUpdateMiddleware>();

@@ -9,9 +9,15 @@ namespace SomeDAO.Backend
 
     public static class Program
     {
+        public const string StartAsIndexerArg = "--indexer";
+
+        public static bool InIndexerMode { get; private set; }
+
         public static async Task Main(string[] args)
         {
-            var host = CreateHostBuilder(args).Build();
+            InIndexerMode = args.Contains(StartAsIndexerArg, StringComparer.OrdinalIgnoreCase);
+
+            var host = (InIndexerMode ? CreateIndexerHostBuilder(args) : CreateApiHostBuilder(args)).Build();
 
             using (var scope = host.Services.CreateScope())
             {
@@ -33,13 +39,19 @@ namespace SomeDAO.Backend
             await host.RunAsync();
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
+        public static IHostBuilder CreateApiHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureLogging(o => o.AddSystemdConsole())
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseStartup<Startup>();
+                    webBuilder.UseStartup<StartupApi>();
                 });
+
+        public static IHostBuilder CreateIndexerHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureLogging(o => o.AddSystemdConsole())
+                .UseConsoleLifetime()
+                .ConfigureServices(StartupIndexer.Configure);
 
         private static void CheckMasterAddress(IDbProvider db, ILogger logger, IServiceProvider serviceProvider)
         {

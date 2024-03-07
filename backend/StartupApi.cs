@@ -11,14 +11,12 @@ namespace SomeDAO.Backend
     using RecurrentTasks;
     using SomeDAO.Backend.Data;
     using SomeDAO.Backend.Services;
-    using TonLibDotNet;
-    using TonLibDotNet.Types;
 
-    public class Startup
+    public class StartupApi
     {
         private readonly IConfiguration configuration;
 
-        public Startup(IConfiguration configuration)
+        public StartupApi(IConfiguration configuration)
         {
             this.configuration = configuration;
         }
@@ -28,31 +26,25 @@ namespace SomeDAO.Backend
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.All);
+            services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddControllers();
-            services.AddHttpClient();
 
-            services.Configure<BackendOptions>(configuration.GetSection("BackendOptions"));
+            var optionsSection = configuration.GetSection("BackendOptions");
+            services.Configure<BackendOptions>(optionsSection);
 
             var bo = new BackendOptions();
-            configuration.GetSection("BackendOptions").Bind(bo);
-
-            services.Configure<TonOptions>(configuration.GetSection("TonOptions"));
-            services.Configure<TonOptions>(o => o.Options.KeystoreType = new KeyStoreTypeDirectory(bo.CacheDirectory));
-            services.AddSingleton<ITonClient, TonClient>();
+            optionsSection.Bind(bo);
 
             services.AddScoped<IDbProvider, DbProvider>();
-            services.AddScoped<DataParser>();
+            services.AddScoped(sp => new Lazy<IDbProvider>(() => sp.GetRequiredService<IDbProvider>()));
             services.AddSingleton<CachedData>();
-            services.AddScoped<SyncSchedulerService>();
+            services.AddScoped<ISearchCacheUpdater, LocalSeachCacheUpdater>();
+            services.AddSingleton<SearchCacheUpdateMiddleware>();
+            services.AddSingleton<IndexerControlTask>();
 
             services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(1)));
-            services.AddTask<SyncTask>(o => o.AutoStart(SyncTask.Interval));
-            services.AddTask<ForceResyncTask>(o => o.AutoStart(ForceResyncTask.Interval));
-            services.AddTask<MasterTrackerTask>(o => o.AutoStart(bo.MasterSyncInterval));
-            services.AddTask<TranslateTask>(o => o.AutoStart(TranslateTask.Interval));
-            services.AddTask<NotificationTask>(o => o.AutoStart(NotificationTask.DefaultInterval));
+            services.AddTask<IndexerControlTask>(o => o.AutoStart(IndexerControlTask.Interval));
 
-            services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(o =>
             {
@@ -81,11 +73,7 @@ namespace SomeDAO.Backend
             RegisteredTasks = new List<Type>
                 {
                     typeof(ITask<CachedData>),
-                    typeof(ITask<SyncTask>),
-                    typeof(ITask<ForceResyncTask>),
-                    typeof(ITask<MasterTrackerTask>),
-                    typeof(ITask<TranslateTask>),
-                    typeof(ITask<NotificationTask>),
+                    typeof(ITask<IndexerControlTask>),
                 }
                 .AsReadOnly();
         }
@@ -103,6 +91,7 @@ namespace SomeDAO.Backend
 
             app.UseMiddleware<RobotsTxtMiddleware>();
             app.UseMiddleware<HealthMiddleware>();
+            app.UseMiddleware<SearchCacheUpdateMiddleware>();
 
             app.UseSwagger();
             app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/backend/swagger.json", "Backend API"));

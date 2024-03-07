@@ -89,7 +89,7 @@
 
             var appAssembly = this.GetType().Assembly;
             var appTitle = appAssembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? appAssembly.GetName().Name ?? "Unknown :(";
-            var appVersion = "v" + appAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? appAssembly.GetName().Version?.ToString() ?? "Unknown";
+            var appVersion = appAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? appAssembly.GetName().Version?.ToString() ?? "Unknown";
 
             yield return ("App Title", appTitle);
             yield return ("App Version", appVersion);
@@ -125,9 +125,9 @@
             yield return ("Entity C", cd.AllCategories.Count);
             yield return ("Entity L", cd.AllLanguages.Count);
 
-            yield return ("Masterchain seqno", MasterTrackerTask.LastKnownSeqno.ToString(CultureInfo.InvariantCulture));
+            yield return ("Masterchain seqno", cd.LastKnownSeqno.ToString(CultureInfo.InvariantCulture));
 
-            foreach (var taskType in Startup.RegisteredTasks)
+            foreach (var taskType in StartupApi.RegisteredTasks)
             {
                 var name = taskType.GenericTypeArguments[0].Name;
                 var task = (RecurrentTasks.ITask)context.RequestServices.GetRequiredService(taskType);

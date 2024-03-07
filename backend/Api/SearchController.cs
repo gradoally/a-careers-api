@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using SomeDAO.Backend.Data;
 using SomeDAO.Backend.Services;
 using Swashbuckle.AspNetCore.Annotations;
@@ -15,18 +14,12 @@ namespace SomeDAO.Backend.Api
     public class SearchController : ControllerBase
     {
         private readonly CachedData cachedData;
-        private readonly BackendConfig backendConfig;
-        private readonly IDbProvider dbProvider;
+        private readonly Lazy<IDbProvider> lazyDbProvider;
 
-        public SearchController(CachedData searchService, IOptions<BackendOptions> backendOptions, IOptions<TonOptions> tonOptions, IDbProvider dbProvider)
+        public SearchController(CachedData searchService, Lazy<IDbProvider> lazyDbProvider)
         {
             this.cachedData = searchService ?? throw new ArgumentNullException(nameof(searchService));
-            this.backendConfig = new BackendConfig
-            {
-                MasterContractAddress = backendOptions.Value.MasterAddress,
-                Mainnet = tonOptions.Value.UseMainnet,
-            };
-            this.dbProvider = dbProvider ?? throw new ArgumentNullException(nameof(dbProvider));
+            this.lazyDbProvider = lazyDbProvider ?? throw new ArgumentNullException(nameof(lazyDbProvider));
         }
 
         /// <summary>
@@ -35,9 +28,13 @@ namespace SomeDAO.Backend.Api
         [HttpGet]
         public ActionResult<BackendConfig> Config()
         {
-            backendConfig.Categories = cachedData.AllCategories;
-            backendConfig.Languages = cachedData.AllLanguages;
-            return backendConfig;
+            return new BackendConfig
+            {
+                MasterContractAddress = cachedData.MasterAddress,
+                Mainnet = cachedData.InMainnet,
+                Categories = cachedData.AllCategories,
+                Languages = cachedData.AllLanguages,
+            };
         }
 
         /// <summary>
@@ -194,7 +191,8 @@ namespace SomeDAO.Backend.Api
 
             if (user != null && translateLanguage != null && user.AboutHash != null)
             {
-                var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
+                var db = lazyDbProvider.Value.MainDb;
+                var translated = db.Find<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
                 user.AboutTranslated = translated?.TranslatedText;
             }
 
@@ -231,7 +229,8 @@ namespace SomeDAO.Backend.Api
 
             if (translateLanguage != null && user.AboutHash != null)
             {
-                var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
+                var db = lazyDbProvider.Value.MainDb;
+                var translated = db.Find<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
                 user.AboutTranslated = translated?.TranslatedText;
             }
 
@@ -268,19 +267,21 @@ namespace SomeDAO.Backend.Api
 
             if (translateLanguage != null)
             {
+                var db = lazyDbProvider.Value.MainDb;
+
                 if (order.NameHash != null)
                 {
-                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
+                    var translated = db.Find<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
                     order.NameTranslated = translated?.TranslatedText;
                 }
                 if (order.DescriptionHash != null)
                 {
-                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
+                    var translated = db.Find<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
                     order.DescriptionTranslated = translated?.TranslatedText;
                 }
                 if (order.TechnicalTaskHash != null)
                 {
-                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
+                    var translated = db.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
                     order.TechnicalTaskTranslated = translated?.TranslatedText;
                 }
             }
@@ -327,19 +328,21 @@ namespace SomeDAO.Backend.Api
 
             if (order != null && translateLanguage != null)
             {
+                var db = lazyDbProvider.Value.MainDb;
+
                 if (order.NameHash != null)
                 {
-                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
+                    var translated = db.Find<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
                     order.NameTranslated = translated?.TranslatedText;
                 }
                 if (order.DescriptionHash != null)
                 {
-                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
+                    var translated = db.Find<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
                     order.DescriptionTranslated = translated?.TranslatedText;
                 }
                 if (order.TechnicalTaskHash != null)
                 {
-                    var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
+                    var translated = db.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
                     order.TechnicalTaskTranslated = translated?.TranslatedText;
                 }
             }
@@ -434,21 +437,23 @@ namespace SomeDAO.Backend.Api
 
             if (translateLanguage != null)
             {
+                var db = lazyDbProvider.Value.MainDb;
+
                 foreach (var order in list)
                 {
                     if (order.NameHash != null)
                     {
-                        var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
+                        var translated = db.Find<Translation>(x => x.Hash == order.NameHash && x.Language == translateLanguage.Name);
                         order.NameTranslated = translated?.TranslatedText;
                     }
                     if (order.DescriptionHash != null)
                     {
-                        var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
+                        var translated = db.Find<Translation>(x => x.Hash == order.DescriptionHash && x.Language == translateLanguage.Name);
                         order.DescriptionTranslated = translated?.TranslatedText;
                     }
                     if (order.TechnicalTaskHash != null)
                     {
-                        var translated = dbProvider.MainDb.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
+                        var translated = db.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
                         order.TechnicalTaskTranslated = translated?.TranslatedText;
                     }
                 }
@@ -479,7 +484,8 @@ namespace SomeDAO.Backend.Api
             }
 
             var allOrders = cachedData.AllOrders;
-            var list = dbProvider.MainDb.Table<OrderActivity>()
+            var db = lazyDbProvider.Value.MainDb;
+            var list = db.Table<OrderActivity>()
                 .Where(x => x.SenderAddress == user.UserAddress)
                 .OrderByDescending(x => x.Timestamp)
                 .Skip(page * pageSize)
@@ -516,7 +522,8 @@ namespace SomeDAO.Backend.Api
             }
 
             var allUsers = cachedData.AllUsers;
-            var list = dbProvider.MainDb.Table<OrderActivity>()
+            var db = lazyDbProvider.Value.MainDb;
+            var list = db.Table<OrderActivity>()
                 .Where(x => x.OrderId == order.Id)
                 .OrderByDescending(x => x.Timestamp)
                 .Skip(page * pageSize)

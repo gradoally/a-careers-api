@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using RecurrentTasks;
+﻿using RecurrentTasks;
 using SomeDAO.Backend.Data;
 
 namespace SomeDAO.Backend.Services
@@ -16,6 +15,9 @@ namespace SomeDAO.Backend.Services
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        public string MasterAddress { get; private set; } = string.Empty;
+        public bool InMainnet { get; private set; }
+        public long LastKnownSeqno { get; private set; }
         public List<Admin> AllAdmins { get; private set; } = new();
         public List<User> AllUsers { get; private set; } = new();
         public List<Order> AllOrders { get; private set; } = new();
@@ -27,6 +29,10 @@ namespace SomeDAO.Backend.Services
         public Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
             var db = scopeServiceProvider.GetRequiredService<IDbProvider>();
+
+            var master = db.MainDb.Find<Settings>(Settings.MASTER_ADDRESS)?.StringValue ?? string.Empty;
+            var mainnet = db.MainDb.Find<Settings>(Settings.IN_MAINNET)?.BoolValue ?? false;
+            var seqno = db.MainDb.Find<Settings>(Settings.LAST_SEQNO)?.LongValue ?? 0;
 
             var admins = db.MainDb.Table<Admin>().ToList();
             logger.LogTrace("Loaded {Count} admins", admins.Count);
@@ -85,6 +91,9 @@ namespace SomeDAO.Backend.Services
             }
             logger.LogTrace("Translations applied to ActiveOrders");
 
+            MasterAddress = master;
+            InMainnet = mainnet;
+            LastKnownSeqno = seqno;
             AllAdmins = admins;
             AllUsers = users;
             AllOrders = orders;
@@ -94,7 +103,8 @@ namespace SomeDAO.Backend.Services
             ActiveOrdersTranslated = activeOrdersTranslated;
 
             logger.LogDebug(
-                "Reloaded {Count} admins, {Count} users, {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",
+                "Reloaded at {Seqno}: {Count} admins, {Count} users, {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",
+                LastKnownSeqno,
                 AllAdmins.Count,
                 AllUsers.Count,
                 AllOrders.Count,

@@ -35,10 +35,6 @@ namespace SomeDAO.Backend.Services
             {
                 syncTask.TryRunImmediately();
             }
-            else
-            {
-                GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
-            }
 
             return Task.CompletedTask;
         }

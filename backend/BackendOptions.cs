@@ -21,5 +21,9 @@
         public TimeSpan UserForceResyncInterval { get; set; } = TimeSpan.FromDays(1);
 
         public TimeSpan OrderForceResyncInterval { get; set; } = TimeSpan.FromDays(1);
+
+        public PathString SearchCacheUpdatePath { get; set; } = "/update-search-cache";
+
+        public TimeSpan IndexerSubprocessRestartInterval { get; set; } = TimeSpan.FromHours(2);
     }
 }

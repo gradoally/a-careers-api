@@ -1,66 +1,102 @@
 ﻿using System.Text.Json.Serialization;
-using SomeDAO.Backend.Services;
 using SQLite;
 
 namespace SomeDAO.Backend.Data
 {
-    public class Order
+    public class Order : IOrderContent, IBlockchainEntity
     {
-        [PrimaryKey]
+        [JsonIgnore]
+        [PrimaryKey, AutoIncrement]
+        public long Id { get; set; }
+
+        [NotNull, Indexed(Unique = true)]
         public long Index { get; set; }
 
+        /// <summary>
+        /// Smartcontract address - in bounceable form.
+        /// </summary>
         [NotNull, Indexed(Unique = true)]
         public string Address { get; set; } = string.Empty;
 
         [Indexed]
-        public string? OwnerAddress { get; set; }
+        public OrderStatus Status { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameImage)]
-        public string? Image { get; set; }
+        /// <summary>
+        /// User wallet address - in non-bounceable form.
+        /// </summary>
+        [NotNull, Indexed]
+        public string CustomerAddress { get; set; } = string.Empty;
 
-        [JsonPropertyName(DataParser.PropNameStatus)]
-        public string? Status { get; set; }
+        [Ignore]
+        public User? Customer { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameName)]
-        public string? Name { get; set; }
+        /// <summary>
+        /// User wallet address - in non-bounceable form.
+        /// </summary>
+        [Indexed]
+        public string? FreelancerAddress { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameAmount)]
-        public decimal Amount { get; set; }
+        [Ignore]
+        public User? Freelancer { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameDescription)]
-        public string? Description { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameTechAssignment)]
-        public string? Assignment { get; set; }
+        public int ResponsesCount { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameCategory)]
+        #region IOrderContent
+
         public string? Category { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameCustomer)]
-        public string? Customer { get; set; }
+        public string? Language { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameCreateUnixTime)]
-        public DateTimeOffset Created { get; set; }
+        public string? Name { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameStartUnixTime)]
-        public DateTimeOffset Starting { get; set; }
+        public decimal Price { get; set; }
 
-        [JsonPropertyName(DataParser.PropNameEndUnixTime)]
-        public DateTimeOffset Ending { get; set; }
+        public DateTimeOffset Deadline { get; set; }
+
+        public string? Description { get; set; }
+
+        public string? TechnicalTask { get; set; }
+
+        #endregion
+
+        #region IBlockchainEntity
 
         [JsonIgnore]
-        public string? LastTxHash { get; set; }
+        public EntityType EntityType { get; } = EntityType.Order;
 
         [JsonIgnore]
         public long LastTxLt { get; set; }
 
         [JsonIgnore]
-        [NotNull, Indexed]
-        public DateTimeOffset LastUpdate { get; set; }
+        public string? LastTxHash { get; set; }
 
         [JsonIgnore]
-        [NotNull, Indexed]
-        public DateTimeOffset UpdateAfter { get; set; }
+        public DateTimeOffset LastSync { get; set; }
+
+        #endregion
+
+        [JsonIgnore]
+        public byte[]? NameHash { get; set; }
+
+        [Ignore]
+        public string? NameTranslated { get; set; }
+
+        [JsonIgnore]
+        public byte[]? DescriptionHash { get; set; }
+
+        [Ignore]
+        public string? DescriptionTranslated { get; set; }
+
+        [JsonIgnore]
+        public byte[]? TechnicalTaskHash { get; set; }
+
+        [Ignore]
+        public string? TechnicalTaskTranslated { get; set; }
+
+        [JsonIgnore]
+        public bool NeedTranslation { get; set; }
 
         [JsonIgnore]
         private string? textToSearch = null;
@@ -74,6 +110,11 @@ namespace SomeDAO.Backend.Data
                 textToSearch ??= Name?.ToUpperInvariant() + " " + Description?.ToUpperInvariant();
                 return textToSearch;
             }
+        }
+
+        public Order ShallowCopy()
+        {
+            return (Order)MemberwiseClone();
         }
     }
 }

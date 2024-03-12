@@ -11,14 +11,12 @@ namespace SomeDAO.Backend
     using RecurrentTasks;
     using SomeDAO.Backend.Data;
     using SomeDAO.Backend.Services;
-    using TonLibDotNet;
-    using TonLibDotNet.Types;
 
-    public class Startup
+    public class StartupApi
     {
         private readonly IConfiguration configuration;
 
-        public Startup(IConfiguration configuration)
+        public StartupApi(IConfiguration configuration)
         {
             this.configuration = configuration;
         }
@@ -28,32 +26,29 @@ namespace SomeDAO.Backend
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.All);
+            services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddControllers();
-            services.AddHttpClient();
 
-            services.Configure<BackendOptions>(configuration.GetSection("BackendOptions"));
+            var optionsSection = configuration.GetSection("BackendOptions");
+            services.Configure<BackendOptions>(optionsSection);
 
             var bo = new BackendOptions();
-            configuration.GetSection("BackendOptions").Bind(bo);
+            optionsSection.Bind(bo);
 
-            services.Configure<TonOptions>(configuration.GetSection("TonOptions"));
-            services.Configure<TonOptions>(o => o.Options.KeystoreType = new KeyStoreTypeDirectory(bo.CacheDirectory));
-            services.AddSingleton<ITonClient, TonClient>();
+            services.AddScoped<IDbProvider, DbProvider>();
+            services.AddScoped(sp => new Lazy<IDbProvider>(() => sp.GetRequiredService<IDbProvider>()));
+            services.AddSingleton<CachedData>();
+            services.AddScoped<ISearchCacheUpdater, LocalSeachCacheUpdater>();
+            services.AddSingleton<SearchCacheUpdateMiddleware>();
+            services.AddSingleton<IndexerControlTask>();
 
-            services.AddSingleton<IDbProvider, DbProvider>();
-            services.AddSingleton<DataParser>();
-            services.AddSingleton<SearchService>();
+            services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(1)));
+            services.AddTask<IndexerControlTask>(o => o.AutoStart(IndexerControlTask.Interval, TimeSpan.FromSeconds(5)));
 
-            services.AddTask<NewOrdersDetector>(o => o.AutoStart(bo.NewOrdersDetectorInterval));
-            services.AddTask<CollectionTxTrackerService>(o => o.AutoStart(bo.CollectionTxTrackingInterval));
-            services.AddTask<MasterTxTrackerService>(o => o.AutoStart(bo.MasterTxTrackingInterval));
-            services.AddTask<OrderUpdateChecker>(o => o.AutoStart(bo.OrderUpdateCheckerInterval));
-            services.AddTask<SearchService>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(3)));
-
-            services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(o =>
             {
+                o.SupportNonNullableReferenceTypes();
                 o.SwaggerDoc("backend", new OpenApiInfo()
                 {
                     Title = "Backend API",
@@ -77,11 +72,8 @@ namespace SomeDAO.Backend
 
             RegisteredTasks = new List<Type>
                 {
-                    typeof(ITask<NewOrdersDetector>),
-                    typeof(ITask<CollectionTxTrackerService>),
-                    typeof(ITask<MasterTxTrackerService>),
-                    typeof(ITask<OrderUpdateChecker>),
-                    typeof(ITask<SearchService>),
+                    typeof(ITask<CachedData>),
+                    typeof(ITask<IndexerControlTask>),
                 }
                 .AsReadOnly();
         }
@@ -94,11 +86,12 @@ namespace SomeDAO.Backend
             app.UseExceptionHandler(ab => ab.Run(ctx =>
             {
                 ctx.Response.ContentType = "text/plain";
-                return ctx.Response.WriteAsync($"Status Code {ctx.Response.StatusCode}");
+                return ctx.Response.WriteAsync($"Nothing here. Please enjoy StatusCode {ctx.Response.StatusCode}.");
             }));
 
             app.UseMiddleware<RobotsTxtMiddleware>();
             app.UseMiddleware<HealthMiddleware>();
+            app.UseMiddleware<SearchCacheUpdateMiddleware>();
 
             app.UseSwagger();
             app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/backend/swagger.json", "Backend API"));

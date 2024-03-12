@@ -9,6 +9,8 @@
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.DependencyInjection;
+    using SomeDAO.Backend.Data;
+    using SomeDAO.Backend.Services;
 
     public class HealthMiddleware
     {
@@ -87,7 +89,7 @@
 
             var appAssembly = this.GetType().Assembly;
             var appTitle = appAssembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? appAssembly.GetName().Name ?? "Unknown :(";
-            var appVersion = "v" + appAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? appAssembly.GetName().Version?.ToString() ?? "Unknown";
+            var appVersion = appAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? appAssembly.GetName().Version?.ToString() ?? "Unknown";
 
             yield return ("App Title", appTitle);
             yield return ("App Version", appVersion);
@@ -106,16 +108,33 @@
 
             yield return ("Your IP", context.Connection.RemoteIpAddress?.ToString() ?? "-unknown-");
 
-            foreach (var taskType in Startup.RegisteredTasks)
+            static (string key, string text) describeEntities(string code, IEnumerable<IBlockchainEntity> items)
+            {
+                var count = items.Count();
+                var text = count == 0
+                    ? "no entities"
+                    : $"total {count}, min sync {items.Min(x => x.LastSync):u}, max sync {items.Max(x => x.LastSync):u}";
+                return ($"Entity {code}", text);
+            }
+
+            var cd = context.RequestServices.GetRequiredService<CachedData>();
+            yield return describeEntities("A", cd.AllAdmins);
+            yield return describeEntities("U", cd.AllUsers);
+            yield return describeEntities("O", cd.AllOrders);
+
+            yield return ("Entity C", cd.AllCategories.Count);
+            yield return ("Entity L", cd.AllLanguages.Count);
+
+            yield return ("Masterchain seqno", cd.LastKnownSeqno.ToString(CultureInfo.InvariantCulture));
+
+            foreach (var taskType in StartupApi.RegisteredTasks)
             {
                 var name = taskType.GenericTypeArguments[0].Name;
                 var task = (RecurrentTasks.ITask)context.RequestServices.GetRequiredService(taskType);
                 if (task.RunStatus.LastSuccessTime.Add(task.Options.Interval).Add(task.Options.Interval) < DateTimeOffset.Now)
                 {
                     allOk = false;
-                    yield return (name + " last run", task.RunStatus.LastRunTime.UtcDateTime.ToString("u", CultureInfo.InvariantCulture));
-                    yield return (name + " last success", task.RunStatus.LastSuccessTime.UtcDateTime.ToString("u", CultureInfo.InvariantCulture));
-                    yield return (name + " last exception", task.RunStatus.LastException?.GetType().Name ?? "None");
+                    yield return (name, $"failed with {task.RunStatus.LastException?.GetType().Name}, last success {task.RunStatus.LastSuccessTime.UtcDateTime.ToString("u", CultureInfo.InvariantCulture)}");
                 }
                 else
                 {

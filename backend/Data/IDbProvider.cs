@@ -4,6 +4,10 @@ namespace SomeDAO.Backend.Data
 {
     public interface IDbProvider
     {
-        SQLiteAsyncConnection MainDb { get; }
+        SQLiteConnection MainDb { get; }
+
+        void Migrate();
+
+        Task Reconnect();
     }
 }

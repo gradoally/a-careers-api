@@ -8,8 +8,6 @@
 
         string? Name { get; set; }
 
-        DateTimeOffset Deadline { get; set; }
-
         string? Description { get; set; }
 
         string? TechnicalTask { get; set; }

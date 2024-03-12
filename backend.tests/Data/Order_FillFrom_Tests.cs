@@ -28,10 +28,6 @@ namespace SomeDAO.Backend.Data
                 obj.Name);
 
             Assert.Equal(
-                new DateTimeOffset(2024, 1, 31, 16, 0, 0, TimeSpan.Zero),
-                obj.Deadline);
-
-            Assert.Equal(
                 "Desription of first order",
                 obj.Description);
 

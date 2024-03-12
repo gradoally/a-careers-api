@@ -43,7 +43,7 @@ namespace SomeDAO.Backend
             services.AddSingleton<IndexerControlTask>();
 
             services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(1)));
-            services.AddTask<IndexerControlTask>(o => o.AutoStart(IndexerControlTask.Interval));
+            services.AddTask<IndexerControlTask>(o => o.AutoStart(IndexerControlTask.Interval, TimeSpan.FromSeconds(5)));
 
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(o =>

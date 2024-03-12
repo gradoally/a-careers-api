@@ -28,7 +28,7 @@ namespace SomeDAO.Backend
 
             services.AddTask<SyncTask>(o => o.AutoStart(SyncTask.Interval));
             services.AddTask<ForceResyncTask>(o => o.AutoStart(ForceResyncTask.Interval));
-            services.AddTask<MasterTrackerTask>(o => o.AutoStart(bo.MasterSyncInterval));
+            services.AddTask<MasterTrackerTask>(o => o.AutoStart(bo.MasterSyncInterval, TimeSpan.FromSeconds(5)));
             services.AddTask<TranslateTask>(o => o.AutoStart(TranslateTask.Interval));
             services.AddTask<NotificationTask>(o => o.AutoStart(NotificationTask.DefaultInterval));
         }

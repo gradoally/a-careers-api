@@ -277,12 +277,12 @@ namespace SomeDAO.Backend.Services
 
             // Recreate all categories
             db.Table<Category>().Delete(x => true);
-            var catCount = db.InsertAll(md.categories);
+            var catCount = md.categories == null ? default : db.InsertAll(md.categories);
             logger.LogDebug("Reloaded {Count} categories", catCount);
 
             // Recreate all languages
             var langOldCount = db.Table<Language>().Delete(x => true);
-            var langNewCount = db.InsertAll(md.languages);
+            var langNewCount = md.languages == null ? default : db.InsertAll(md.languages);
             logger.LogDebug("Reloaded {Count} languages", langNewCount);
             if (langOldCount != langNewCount)
             {

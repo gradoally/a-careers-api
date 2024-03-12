@@ -411,7 +411,7 @@ namespace SomeDAO.Backend.Services
             var nextUser = indexes.LoadLong();
             var nextAdmin = indexes.LoadLong();
 
-            var categories = slice.TryLoadRef()?
+            var categories = slice.TryLoadDict()?
                 .ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)).ToLowerInvariant(), x => x)
                 .Select(x =>
                 {
@@ -426,6 +426,9 @@ namespace SomeDAO.Backend.Services
                 })
                 .ToList();
 
+            // load languages as TryLoadRef instead of TryLoadDict, because:
+            //   there are some fields that we have not skipped (order_fee_numerator, order_fee_denominator, user_creation_fee, order_creation_fee)
+            //   and there are no other refs left
             var languages = slice.TryLoadRef()?
                 .ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)).ToLowerInvariant(), x => x.LoadStringSnake(true))
                 .Select(x => new Language() { Hash = x.Key, Name = x.Value ?? "???" })

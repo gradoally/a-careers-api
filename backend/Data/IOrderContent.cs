@@ -8,8 +8,6 @@
 
         string? Name { get; set; }
 
-        decimal Price { get; set; }
-
         DateTimeOffset Deadline { get; set; }
 
         string? Description { get; set; }

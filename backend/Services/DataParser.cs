@@ -23,7 +23,6 @@ namespace SomeDAO.Backend.Services
         private static readonly string PropTelegram = GetSHA256OfStringAsHex("telegram");
         private static readonly string PropName = GetSHA256OfStringAsHex("name");
         private static readonly string PropDescription = GetSHA256OfStringAsHex("description");
-        private static readonly string PropPrice = GetSHA256OfStringAsHex("price");
         private static readonly string PropDeadline = GetSHA256OfStringAsHex("deadline");
         private static readonly string PropTechnicalTask = GetSHA256OfStringAsHex("technical_task");
         private static readonly string PropLanguage = GetSHA256OfStringAsHex("language");
@@ -95,7 +94,6 @@ namespace SomeDAO.Backend.Services
             value.Category = dict.TryGetValue(PropCategory, out s) ? Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant() : default;
             value.Language = dict.TryGetValue(PropLanguage, out s) ? Convert.ToHexString(s.LoadBitsToBytes(256)).ToLowerInvariant() : default;
             value.Name = dict.TryGetValue(PropName, out s) ? s.LoadStringSnake(true) : default;
-            value.Price = dict.TryGetValue(PropPrice, out s) ? TonUtils.Coins.FromNano(s.LoadCoins()) : default;
             value.Deadline = dict.TryGetValue(PropDeadline, out s) ? DateTimeOffset.FromUnixTimeSeconds(s.LoadUInt(32)) : default;
             value.Description = dict.TryGetValue(PropDescription, out s) ? s.LoadStringSnake(true) : default;
             value.TechnicalTask = dict.TryGetValue(PropTechnicalTask, out s) ? s.LoadStringSnake(true) : default;

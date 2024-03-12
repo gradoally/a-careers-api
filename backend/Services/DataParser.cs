@@ -258,7 +258,10 @@ namespace SomeDAO.Backend.Services
             }
 
             var status = data1.Stack[3].ToInt();
-            var price = TonUtils.Coins.FromNano(data1.Stack[4].ToLong());
+
+            // "strange" price reading because value can be more than TON supply (and long type range) due to user error.
+            var price = (decimal)data1.Stack[4].ToBigInteger() / TonUtils.Coins.ToNano(1);
+
             var deadline = data1.Stack[5].ToInt();
             var customerAddress = data1.Stack[6].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(false);
             var freelancerAddress = data1.Stack[7].ToBoc().RootCells[0].BeginRead().TryLoadAddressIntStd(false);

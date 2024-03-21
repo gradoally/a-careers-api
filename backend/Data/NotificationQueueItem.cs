@@ -1,4 +1,5 @@
-﻿using SQLite;
+﻿using System.Text.Json;
+using SQLite;
 
 namespace SomeDAO.Backend.Data
 {
@@ -9,10 +10,16 @@ namespace SomeDAO.Backend.Data
             // Nothing
         }
 
-        public NotificationQueueItem(long orderActivityId, DateTimeOffset transactionTime)
+        public NotificationQueueItem(OrderActivity orderActivity, Order order)
         {
-            OrderActivityId = orderActivityId;
-            TxTime = transactionTime;
+            ArgumentNullException.ThrowIfNull(orderActivity);
+            ArgumentNullException.ThrowIfNull(order);
+
+            OrderActivityId = orderActivity.Id;
+            TxTime = orderActivity.Timestamp;
+
+            orderActivity.Order = order;
+            Body = JsonSerializer.Serialize(orderActivity);
         }
 
         [PrimaryKey, AutoIncrement]
@@ -23,5 +30,8 @@ namespace SomeDAO.Backend.Data
 
         [NotNull, Indexed]
         public DateTimeOffset TxTime { get; set; }
+
+        [NotNull]
+        public string Body { get; set; }
     }
 }

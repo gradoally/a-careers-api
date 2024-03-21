@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.Net.Http.Headers;
+using Microsoft.Extensions.Options;
 using RecurrentTasks;
 using SomeDAO.Backend.Data;
 
@@ -61,18 +62,12 @@ namespace SomeDAO.Backend.Services
                 }
                 else
                 {
-                    var activity = db.Find<OrderActivity>(next.OrderActivityId);
-                    if (activity != null)
-                    {
-                        activity.Order = db.Find<Order>(activity.OrderId);
+                    using var content = new StringContent(next.Body, System.Text.Encoding.UTF8, System.Net.Mime.MediaTypeNames.Application.Json);
+                    using var req = new HttpRequestMessage(HttpMethod.Post, options.NotificationsEndpoint) { Content = content };
+                    using var resp = await httpClient.SendAsync(req, cancellationToken);
+                    resp.EnsureSuccessStatusCode();
 
-                        using var content = JsonContent.Create(activity);
-                        using var req = new HttpRequestMessage(HttpMethod.Post, options.NotificationsEndpoint) { Content = content };
-                        using var resp = await httpClient.SendAsync(req, cancellationToken);
-                        resp.EnsureSuccessStatusCode();
-
-                        logger.LogDebug("Notification about activity #{Id} sent Ok", activity.Id);
-                    }
+                    logger.LogDebug("Notification about activity #{Id} sent Ok", next.OrderActivityId);
                 }
 
                 db.Delete(next);

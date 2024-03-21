@@ -182,7 +182,7 @@ namespace SomeDAO.Backend.Services
                 {
                     logger.LogDebug("Tx for Order {Address} added: Op {OpCode} at {Time} ({Lt}/{Hash})", order.Address, activity.OpCode, activity.Timestamp, activity.TxLt, activity.TxHash);
                     dbProvider.MainDb.Insert(activity);
-                    dbProvider.MainDb.Insert(new NotificationQueueItem(activity.Id, activity.Timestamp));
+                    dbProvider.MainDb.Insert(new NotificationQueueItem(activity, order));
                 }
                 else
                 {

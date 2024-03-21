@@ -1,4 +1,5 @@
-﻿using SQLite;
+﻿using System.Text.Json.Serialization;
+using SQLite;
 
 namespace SomeDAO.Backend.Data
 {
@@ -7,6 +8,7 @@ namespace SomeDAO.Backend.Data
         [PrimaryKey, AutoIncrement]
         public long Id { get; set; }
 
+        [JsonIgnore]
         [NotNull, Indexed(Name = "UNQ", Order = 1, Unique = true)]
         public long OrderId { get; set; }
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
 using SomeDAO.Backend.Data;
 using SomeDAO.Backend.Services;
 using Swashbuckle.AspNetCore.Annotations;
@@ -160,7 +161,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Address is empty or invalid.")]
         [HttpGet]
-        public ActionResult<FindResult<User>> FindUser(string address, string? translateTo = null)
+        public ActionResult<FindResult<User>> FindUser([Required(AllowEmptyStrings = false)] string address, string? translateTo = null)
         {
             if (string.IsNullOrEmpty(address))
             {
@@ -206,7 +207,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Index is invalid (or user does not exist).")]
         [HttpGet]
-        public ActionResult<User> GetUser(long index, string? translateTo = null)
+        public ActionResult<User> GetUser([Required] long index, string? translateTo = null)
         {
             var user = cachedData.AllUsers.Find(x => x.Index == index);
 
@@ -244,7 +245,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Index is invalid (or order does not exist).")]
         [HttpGet]
-        public ActionResult<Order> GetOrder(long index, string? translateTo = null)
+        public ActionResult<Order> GetOrder([Required] long index, string? translateTo = null)
         {
             var order = cachedData.AllOrders.Find(x => x.Index == index);
 
@@ -296,7 +297,7 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Address is empty or invalid.")]
         [HttpGet]
-        public ActionResult<FindResult<Order>> FindOrder(string address, string? translateTo = null)
+        public ActionResult<FindResult<Order>> FindOrder([Required(AllowEmptyStrings = false)] string address, string? translateTo = null)
         {
             if (string.IsNullOrEmpty(address))
             {
@@ -357,7 +358,7 @@ namespace SomeDAO.Backend.Api
         /// <remarks>Only statuses with non-zero number of orders are returned.</remarks>
         [SwaggerResponse(400, "Index is invalid (or user does not exist).")]
         [HttpGet]
-        public ActionResult<UserStat> GetUserStats(long index)
+        public ActionResult<UserStat> GetUserStats([Required] long index)
         {
             var user = cachedData.AllUsers.Find(x => x.Index == index);
 
@@ -391,7 +392,11 @@ namespace SomeDAO.Backend.Api
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' or 'role' value.")]
         [HttpGet]
-        public ActionResult<List<Order>> GetUserOrders(long index, string role, int status, string? translateTo = null)
+        public ActionResult<List<Order>> GetUserOrders(
+            [Required] long index,
+            [Required(AllowEmptyStrings = false)] string role,
+            [Required] int status,
+            string? translateTo = null)
         {
             var mode = role.ToLowerInvariant() switch
             {
@@ -471,7 +476,7 @@ namespace SomeDAO.Backend.Api
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
         [HttpGet]
         public ActionResult<List<OrderActivity>> GetUserActivity(
-            long index,
+            [Required] long index,
             int page = 0,
             int pageSize = 10)
         {
@@ -509,7 +514,7 @@ namespace SomeDAO.Backend.Api
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
         [HttpGet]
         public ActionResult<List<OrderActivity>> GetOrderActivity(
-            long index,
+            [Required] long index,
             int page = 0,
             int pageSize = 10)
         {

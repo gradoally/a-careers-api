@@ -222,60 +222,36 @@ namespace SomeDAO.Backend.Services
             value.LastTxLt = state.LastTransactionId.Lt;
             value.LastTxHash = state.LastTransactionId.Hash;
 
-            var smc = await tonClient.SmcLoad(value.Address);
+            // https://github.com/the-real-some-dao/a-careers-smc/blob/main/contracts/order.fc#L37
+            var slice = Boc.ParseFromBase64(state.Data).RootCells[0].BeginRead();
 
-            var data1 = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_order_data"));
-            if (data1.ExitCode != 0)
-            {
-                throw new NonZeroExitCodeException(data1.ExitCode, value.Address, "get_order_data");
-            }
-
-            var data2 = await tonClient.SmcRunGetMethod(smc.Id, new MethodIdName("get_responses"));
-            if (data2.ExitCode != 0)
-            {
-                throw new NonZeroExitCodeException(data2.ExitCode, value.Address, "get_responses");
-            }
-
-            await tonClient.SmcForget(smc.Id);
-
-            // Method returns:
-            // (int, int, slice, int, int, int, slice, slice, cell) get_order_data()
-            // (storage::init?, storage::index, storage::master_address,
-            //      storage::status, storage::price, storage::deadline, storage::customer_address,
-            //      storage::freelancer_address, storage::content)
-
-            // Second method returns:
-            // (cell, int) get_responses()
-            // (storage::responses, storage::responses_count)
-
-            var index = data1.Stack[1].ToLong();
-
+            var index = (long)slice.LoadULong(64);
             if (index != value.Index)
             {
                 throw new ApplicationException($"Order index mismatch: {index} got, {value.Index} expected for {value.Address}.");
             }
 
-            var status = data1.Stack[3].ToInt();
+            _ = slice.LoadAddressIntStd(); // master_address
+
+            var addresses = slice.LoadRef().BeginRead();
+            value.CustomerAddress = addresses.LoadAddressIntStd(false);
+            value.FreelancerAddress = addresses.TryLoadAddressIntStd(false);
+
+            var content = slice.LoadDict();
+            FillOrderContent(value, content);
 
             // "strange" price reading because value can be more than TON supply (and long type range) due to user error.
-            var price = (decimal)data1.Stack[4].ToBigInteger() / TonUtils.Coins.ToNano(1);
+            value.Price = (decimal)slice.LoadCoinsToBigInt() / TonUtils.Coins.ToNano(1);
 
-            var deadline = data1.Stack[5].ToInt();
-            var customerAddress = data1.Stack[6].ToBoc().RootCells[0].BeginRead().LoadAddressIntStd(false);
-            var freelancerAddress = data1.Stack[7].ToBoc().RootCells[0].BeginRead().TryLoadAddressIntStd(false);
-            var content = data1.Stack[8].ToBoc();
-
-            var responsesCount = data2.Stack[1].ToInt();
-
-            value.Status = status;
-            value.CustomerAddress = customerAddress;
-            value.FreelancerAddress = freelancerAddress;
-            value.CreatedAt = DateTimeOffset.UtcNow.Truncate(TimeSpan.FromSeconds(1));
-            value.ResponsesCount = responsesCount;
-            value.Price = price;
-            value.Deadline = DateTimeOffset.FromUnixTimeSeconds(deadline);
-
-            FillOrderContent(value, content.RootCells[0]);
+            value.Deadline = DateTimeOffset.FromUnixTimeSeconds(slice.LoadUInt(32));
+            value.TimeForCheck = (int)slice.LoadUInt(32);
+            _ = slice.LoadUInt(8); // protocol_fee_numerator
+            _ = slice.LoadUInt(8); // protocol_fee_denominator
+            _ = slice.TryLoadDict(); // responses
+            value.Status = (int)slice.LoadUInt(8);
+            _ = slice.LoadULong(64); // admin_count
+            value.ResponsesCount = (int)slice.LoadUInt(8);
+            value.CompletedAt = DateTimeOffset.FromUnixTimeSeconds(slice.LoadUInt(32));
 
             return true;
         }

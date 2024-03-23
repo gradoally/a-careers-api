@@ -265,6 +265,7 @@ namespace SomeDAO.Backend.Services
                             Index = index,
                             Address = TonUtils.Address.SetBounceable(address, true),
                             CustomerAddress = masterAddress,
+                            CreatedAt = DateTimeOffset.UtcNow.Truncate(TimeSpan.FromSeconds(1)),
                         };
                         db.Insert(entity);
                         syncScheduler.Schedule(entity);

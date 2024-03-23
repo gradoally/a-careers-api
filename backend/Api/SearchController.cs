@@ -438,7 +438,7 @@ namespace SomeDAO.Backend.Api
                 ? cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress))
                 : cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
 
-            var list = query.Where(x => x.Status == (OrderStatus)status).ToList();
+            var list = query.Where(x => x.Status == status).ToList();
 
             if (translateLanguage != null)
             {

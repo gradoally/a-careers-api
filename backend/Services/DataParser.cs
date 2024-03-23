@@ -267,7 +267,7 @@ namespace SomeDAO.Backend.Services
 
             var responsesCount = data2.Stack[1].ToInt();
 
-            value.Status = (OrderStatus)status;
+            value.Status = status;
             value.CustomerAddress = customerAddress;
             value.FreelancerAddress = freelancerAddress;
             value.CreatedAt = DateTimeOffset.UtcNow.Truncate(TimeSpan.FromSeconds(1));
@@ -322,28 +322,7 @@ namespace SomeDAO.Backend.Services
                     continue;
                 }
 
-                var op = (OpCode)slice.LoadInt(32);
-                if (op == OpCode.Unknown || !Enum.IsDefined(op))
-                {
-                    logger.LogDebug("Tx for Order {Address} ignored: unknown op-code {Value} at {Time} ({Lt}/{Hash})", order.Address, op, tx.Utime, tx.TransactionId.Lt, tx.TransactionId.Hash);
-                    continue;
-                }
-
-                var role = op switch
-                {
-                    OpCode.InitOrder => OrderActivitySenderRole.Customer,
-                    OpCode.AssignUser => OrderActivitySenderRole.Customer,
-                    OpCode.AcceptOrder => OrderActivitySenderRole.Freelancer,
-                    OpCode.RejectOrder => OrderActivitySenderRole.Freelancer,
-                    OpCode.CancelAssign => OrderActivitySenderRole.Customer,
-                    OpCode.Refund => OrderActivitySenderRole.Customer,
-                    OpCode.CompleteOrder => OrderActivitySenderRole.Freelancer,
-                    OpCode.ForcePayment => OrderActivitySenderRole.Freelancer,
-                    OpCode.CustomerFeedback => OrderActivitySenderRole.Customer,
-                    _ => OrderActivitySenderRole.Unspecified,
-                };
-
-                var bounceable = role == OrderActivitySenderRole.Customer || role == OrderActivitySenderRole.Freelancer ? false : true;
+                var op = slice.LoadInt(32);
 
                 var activity = new OrderActivity
                 {
@@ -352,8 +331,7 @@ namespace SomeDAO.Backend.Services
                     TxHash = tx.TransactionId.Hash,
                     Timestamp = tx.Utime,
                     OpCode = op,
-                    SenderRole = role,
-                    SenderAddress = TonUtils.Address.SetBounceable(tx.InMsg.Source.Value, bounceable),
+                    SenderAddress = TonUtils.Address.SetBounceable(tx.InMsg.Source.Value, false),
                     Amount = TonUtils.Coins.FromNano(tx.InMsg.Value),
                 };
 

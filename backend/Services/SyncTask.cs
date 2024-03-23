@@ -172,7 +172,7 @@ namespace SomeDAO.Backend.Services
 
             await foreach (var activity in dataParser.GetOrderActivities(order, endLt))
             {
-                if (activity.OpCode == OpCode.InitOrder)
+                if (activity.OpCode == OrderActivity.op_init_order)
                 {
                     order.CreatedAt = activity.Timestamp;
                 }

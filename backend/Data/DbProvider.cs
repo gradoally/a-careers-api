@@ -40,7 +40,7 @@ namespace SomeDAO.Backend.Data
 
             UpdateDb(MainDb);
 
-            logger.LogInformation("Connected to {FilePath}", MainDb.DatabasePath);
+            logger.LogInformation("Using {FilePath}", MainDb.DatabasePath);
         }
 
         public async Task Reconnect()
@@ -96,16 +96,16 @@ namespace SomeDAO.Backend.Data
                 throw new InvalidOperationException($"Too old version: {ver} (supported minumum: {minVersion})");
             }
 
-            ////if (ver == 1)
-            ////{
-            ////    logger.LogInformation("Performing upgrade from version {Version}...", ver);
+            if (ver == 1)
+            {
+                logger.LogInformation("Performing upgrade from version {Version}...", ver);
 
-            ////    await connection.InsertOrReplace(...);
+                connection.Execute("ALTER TABLE OrderActivity DROP COLUMN SenderRole;");
 
-            ////    ver = 2;
-            ////    await connection.InsertOrReplace(new Settings(Settings.KEY_DB_VERSION, ver));
-            ////    logger.LogInformation("DB version updated to {Version}", ver);
-            ////}
+                ver = 2;
+                connection.InsertOrReplace(new Settings(Settings.KEY_DB_VERSION, ver));
+                logger.LogInformation("DB version updated to {Version}", ver);
+            }
         }
     }
 }

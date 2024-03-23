@@ -41,7 +41,7 @@ namespace SomeDAO.Backend.Services
             logger.LogTrace("Loaded {Count} users", users.Count);
 
             var orders = db.MainDb.Table<Order>().ToList();
-            var activeOrders = orders.Where(x => x.Status == OrderStatus.Active).ToList();
+            var activeOrders = orders.Where(x => x.Status == Order.status_active).ToList();
             logger.LogTrace("Loaded {Count} orders (including {Count} active)", orders.Count, activeOrders.Count);
 
             foreach (var order in orders)

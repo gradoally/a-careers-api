@@ -5,6 +5,10 @@ namespace SomeDAO.Backend.Data
 {
     public class User : IUserContent, IBlockchainEntity
     {
+        public const string StatusActive = "active";
+        public const string StatusModeration = "moderation";
+        public const string StatusBanned = "banned";
+
         [JsonIgnore]
         [PrimaryKey, AutoIncrement]
         public long Id { get; set; }
@@ -33,9 +37,9 @@ namespace SomeDAO.Backend.Data
             {
                 return RevokedAt switch
                 {
-                    0 => "active",
-                    1 => "moderation",
-                    _ => "banned",
+                    0 => StatusActive,
+                    1 => StatusModeration,
+                    _ => StatusBanned,
                 };
             }
         }

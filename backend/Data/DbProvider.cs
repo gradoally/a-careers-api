@@ -40,7 +40,7 @@ namespace SomeDAO.Backend.Data
 
             UpdateDb(MainDb);
 
-            logger.LogInformation("Connected to {FilePath}", MainDb.DatabasePath);
+            logger.LogInformation("Using {FilePath}", MainDb.DatabasePath);
         }
 
         public async Task Reconnect()
@@ -82,12 +82,13 @@ namespace SomeDAO.Backend.Data
         protected void UpdateDb(SQLiteConnection connection)
         {
             const int minVersion = 1;
+            const int lastVersion = 3;
 
             var ver = connection.Find<Settings>(Settings.KEY_DB_VERSION)?.IntValue ?? 0;
 
             if (ver == 0)
             {
-                ver = minVersion;
+                ver = lastVersion;
                 connection.Insert(new Settings(Settings.KEY_DB_VERSION, ver));
             }
 
@@ -96,16 +97,32 @@ namespace SomeDAO.Backend.Data
                 throw new InvalidOperationException($"Too old version: {ver} (supported minumum: {minVersion})");
             }
 
-            ////if (ver == 1)
-            ////{
-            ////    logger.LogInformation("Performing upgrade from version {Version}...", ver);
+            if (ver == 1)
+            {
+                logger.LogInformation("Performing upgrade from version {Version}...", ver);
 
-            ////    await connection.InsertOrReplace(...);
+                connection.Execute("ALTER TABLE OrderActivity DROP COLUMN SenderRole;");
 
-            ////    ver = 2;
-            ////    await connection.InsertOrReplace(new Settings(Settings.KEY_DB_VERSION, ver));
-            ////    logger.LogInformation("DB version updated to {Version}", ver);
-            ////}
+                ver++;
+                connection.InsertOrReplace(new Settings(Settings.KEY_DB_VERSION, ver));
+                logger.LogInformation("DB version updated to {Version}", ver);
+            }
+
+            if (ver == 2)
+            {
+                logger.LogInformation("Performing upgrade from version {Version}...", ver);
+
+                connection.Execute("UPDATE [Order] SET LastTxLt = 0, LastSync = 0;");
+
+                ver++;
+                connection.InsertOrReplace(new Settings(Settings.KEY_DB_VERSION, ver));
+                logger.LogInformation("DB version updated to {Version}", ver);
+            }
+
+            if (ver != lastVersion)
+            {
+                throw new ApplicationException($"Failed to update DB: actual version {ver} does not equal to expected {lastVersion}");
+            }
         }
     }
 }

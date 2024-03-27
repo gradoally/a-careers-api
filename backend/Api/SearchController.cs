@@ -14,6 +14,9 @@ namespace SomeDAO.Backend.Api
     [SwaggerResponse(200, "Request is accepted, processed and response contains requested data.")]
     public class SearchController : ControllerBase
     {
+        private const int MinPageSize = 10;
+        private const int MaxPageSize = 100;
+
         private readonly CachedData cachedData;
         private readonly Lazy<IDbProvider> lazyDbProvider;
 
@@ -35,6 +38,27 @@ namespace SomeDAO.Backend.Api
                 Mainnet = cachedData.InMainnet,
                 Categories = cachedData.AllCategories,
                 Languages = cachedData.AllLanguages,
+            };
+        }
+
+        /// <summary>
+        /// Returns some statistics.
+        /// </summary>
+        /// <remarks>
+        /// Drill-down lists only display items with a non-zero value.
+        /// </remarks>
+        [HttpGet]
+        public ActionResult<BackendStatistics> Stat()
+        {
+            return new BackendStatistics
+            {
+                OrderCount = cachedData.AllOrders.Count,
+                OrderCountByStatus = cachedData.OrderCountByStatus,
+                OrderCountByCategory = cachedData.OrderCountByCategory,
+                OrderCountByLanguage = cachedData.OrderCountByLanguage,
+                UserCount = cachedData.AllUsers.Count,
+                UserCountByStatus = cachedData.UserCountByStatus,
+                UserCountByLanguage = cachedData.UserCountByLanguage,
             };
         }
 
@@ -72,8 +96,8 @@ namespace SomeDAO.Backend.Api
             string orderBy = "createdAt",
             string sort = "asc",
             string? translateTo = null,
-            int page = 0,
-            int pageSize = 10)
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
 
             var orderByMode = orderBy.ToLowerInvariant() switch
@@ -438,7 +462,7 @@ namespace SomeDAO.Backend.Api
                 ? cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress))
                 : cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
 
-            var list = query.Where(x => x.Status == (OrderStatus)status).ToList();
+            var list = query.Where(x => x.Status == status).ToList();
 
             if (translateLanguage != null)
             {
@@ -477,8 +501,8 @@ namespace SomeDAO.Backend.Api
         [HttpGet]
         public ActionResult<List<OrderActivity>> GetUserActivity(
             [Required] long index,
-            int page = 0,
-            int pageSize = 10)
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
             var user = cachedData.AllUsers.Find(x => x.Index == index);
 
@@ -515,8 +539,8 @@ namespace SomeDAO.Backend.Api
         [HttpGet]
         public ActionResult<List<OrderActivity>> GetOrderActivity(
             [Required] long index,
-            int page = 0,
-            int pageSize = 10)
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
             var order = cachedData.AllOrders.Find(x => x.Index == index);
 
@@ -541,6 +565,109 @@ namespace SomeDAO.Backend.Api
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Get list of orders.
+        /// </summary>
+        /// <remarks>Translations and inner object are not provided!</remarks>
+        /// <param name="status">Status of returned orders.</param>
+        /// <param name="category">Category of returned orders.</param>
+        /// <param name="language">Language of returned orders.</param>
+        /// <param name="sort">Sort order: 'asc' or 'desc'.</param>
+        /// <param name="page">Page number to return (default 0).</param>
+        /// <param name="pageSize">Page size (default 10, max 100).</param>
+        [SwaggerResponse(400, "Invalid request.")]
+        [HttpGet]
+        public ActionResult<List<Order>> ListOrders(
+            int? status,
+            string? category,
+            string? language,
+            string sort = "asc",
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
+        {
+            var sortMode = sort.ToLowerInvariant() switch
+            {
+                "asc" => 1,
+                "desc" => 2,
+                _ => 0,
+            };
+
+            if (sortMode == 0)
+            {
+                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
+                return ValidationProblem();
+            }
+
+            var list = cachedData.AllOrders
+                .Where(x => status == null || x.Status == status)
+                .Where(x => string.IsNullOrEmpty(category) || x.Category == category)
+                .Where(x => string.IsNullOrEmpty(language) || x.Language == language);
+
+            var sorted = sortMode == 1 ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
+
+            return sorted.Skip(page * pageSize).Take(pageSize)
+                .Select(x => x.ShallowCopy())
+                .Select(x => { x.Customer = null; x.Freelancer = null; return x; })
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get list of users.
+        /// </summary>
+        /// <remarks>Translations and inner object are not provided!</remarks>
+        /// <param name="status">Status of returned users ('active' or 'moderation' or 'banned').</param>
+        /// <param name="language">Language of returned users.</param>
+        /// <param name="sort">Sort order: 'asc' or 'desc'.</param>
+        /// <param name="page">Page number to return (default 0).</param>
+        /// <param name="pageSize">Page size (default 10, max 100).</param>
+        [SwaggerResponse(400, "Invalid request.")]
+        [HttpGet]
+        public ActionResult<List<User>> ListUsers(
+            string? status,
+            string? language,
+            string sort = "asc",
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
+        {
+            if (status != null)
+            {
+                var statusValue = status.ToLowerInvariant() switch
+                {
+                    Data.User.StatusActive => Data.User.StatusActive,
+                    Data.User.StatusModeration => Data.User.StatusModeration,
+                    Data.User.StatusBanned => Data.User.StatusBanned,
+                    _ => null,
+                };
+
+                if (statusValue == null)
+                {
+                    ModelState.AddModelError(nameof(status), "Invalid value. Use 'active' or 'moderation' or 'banned'.");
+                    return ValidationProblem();
+                }
+            }
+
+            var sortMode = sort.ToLowerInvariant() switch
+            {
+                "asc" => 1,
+                "desc" => 2,
+                _ => 0,
+            };
+
+            if (sortMode == 0)
+            {
+                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
+                return ValidationProblem();
+            }
+
+            var list = cachedData.AllUsers
+                .Where(x => status == null || x.UserStatus == status)
+                .Where(x => string.IsNullOrEmpty(language) || x.Language == language);
+
+            var sorted = sortMode == 1 ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
+
+            return sorted.Skip(page * pageSize).Take(pageSize).ToList();
         }
 
         protected IEnumerable<Order> SearchActiveOrders(
@@ -585,6 +712,23 @@ namespace SomeDAO.Backend.Api
             public List<Category> Categories { get; set; } = new();
 
             public List<Language> Languages { get; set; } = new();
+        }
+
+        public class BackendStatistics
+        {
+            public int OrderCount { get; set; }
+
+            public Dictionary<int, int> OrderCountByStatus { get; set; } = new();
+
+            public Dictionary<string, int> OrderCountByCategory { get; set; } = new();
+
+            public Dictionary<string, int> OrderCountByLanguage { get; set; } = new();
+
+            public int UserCount { get; set; }
+
+            public Dictionary<string, int> UserCountByStatus { get; set; } = new();
+
+            public Dictionary<string, int> UserCountByLanguage { get; set; } = new();
         }
 
         public class UserStat

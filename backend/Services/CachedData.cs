@@ -25,6 +25,11 @@ namespace SomeDAO.Backend.Services
         public List<Category> AllCategories { get; private set; } = new();
         public List<Language> AllLanguages { get; private set; } = new();
         public Dictionary<string, List<Order>> ActiveOrdersTranslated { get; private set; } = new();
+        public Dictionary<int, int> OrderCountByStatus { get; private set;} = new();
+        public Dictionary<string, int> OrderCountByCategory { get; private set;} = new();
+        public Dictionary<string, int> OrderCountByLanguage { get; private set;} = new();
+        public Dictionary<string, int> UserCountByStatus { get; private set;} = new();
+        public Dictionary<string, int> UserCountByLanguage { get; private set;} = new();
 
         public Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
@@ -101,6 +106,11 @@ namespace SomeDAO.Backend.Services
             AllCategories = categories;
             AllLanguages = languages;
             ActiveOrdersTranslated = activeOrdersTranslated;
+            OrderCountByStatus = orders.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
+            OrderCountByCategory = orders.Where(x => !string.IsNullOrEmpty(x.Category)).GroupBy(x => x.Category!).ToDictionary(x => x.Key, x => x.Count());
+            OrderCountByLanguage = orders.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());
+            UserCountByStatus = users.GroupBy(x => x.UserStatus).ToDictionary(x => x.Key, x => x.Count());
+            UserCountByLanguage = users.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());
 
             logger.LogDebug(
                 "Reloaded at {Seqno}: {Count} admins, {Count} users, {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",

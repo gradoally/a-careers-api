@@ -39,6 +39,27 @@ namespace SomeDAO.Backend.Api
         }
 
         /// <summary>
+        /// Returns some statistics.
+        /// </summary>
+        /// <remarks>
+        /// Drill-down lists only display items with a non-zero value.
+        /// </remarks>
+        [HttpGet]
+        public ActionResult<BackendStatistics> Stat()
+        {
+            return new BackendStatistics
+            {
+                OrderCount = cachedData.AllOrders.Count,
+                OrderCountByStatus = cachedData.OrderCountByStatus,
+                OrderCountByCategory = cachedData.OrderCountByCategory,
+                OrderCountByLanguage = cachedData.OrderCountByLanguage,
+                UserCount = cachedData.AllUsers.Count,
+                UserCountByStatus = cachedData.UserCountByStatus,
+                UserCountByLanguage = cachedData.UserCountByLanguage,
+            };
+        }
+
+        /// <summary>
         /// Returns list of ACTIVE (available to work at) Orders that meet filter.
         /// </summary>
         /// <param name="query">Free query</param>
@@ -585,6 +606,23 @@ namespace SomeDAO.Backend.Api
             public List<Category> Categories { get; set; } = new();
 
             public List<Language> Languages { get; set; } = new();
+        }
+
+        public class BackendStatistics
+        {
+            public int OrderCount { get; set; }
+
+            public Dictionary<int, int> OrderCountByStatus { get; set; } = new();
+
+            public Dictionary<string, int> OrderCountByCategory { get; set; } = new();
+
+            public Dictionary<string, int> OrderCountByLanguage { get; set; } = new();
+
+            public int UserCount { get; set; }
+
+            public Dictionary<string, int> UserCountByStatus { get; set; } = new();
+
+            public Dictionary<string, int> UserCountByLanguage { get; set; } = new();
         }
 
         public class UserStat

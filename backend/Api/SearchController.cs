@@ -14,6 +14,9 @@ namespace SomeDAO.Backend.Api
     [SwaggerResponse(200, "Request is accepted, processed and response contains requested data.")]
     public class SearchController : ControllerBase
     {
+        private const int MinPageSize = 10;
+        private const int MaxPageSize = 100;
+
         private readonly CachedData cachedData;
         private readonly Lazy<IDbProvider> lazyDbProvider;
 
@@ -93,8 +96,8 @@ namespace SomeDAO.Backend.Api
             string orderBy = "createdAt",
             string sort = "asc",
             string? translateTo = null,
-            int page = 0,
-            int pageSize = 10)
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
 
             var orderByMode = orderBy.ToLowerInvariant() switch
@@ -498,8 +501,8 @@ namespace SomeDAO.Backend.Api
         [HttpGet]
         public ActionResult<List<OrderActivity>> GetUserActivity(
             [Required] long index,
-            int page = 0,
-            int pageSize = 10)
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
             var user = cachedData.AllUsers.Find(x => x.Index == index);
 
@@ -536,8 +539,8 @@ namespace SomeDAO.Backend.Api
         [HttpGet]
         public ActionResult<List<OrderActivity>> GetOrderActivity(
             [Required] long index,
-            int page = 0,
-            int pageSize = 10)
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
             var order = cachedData.AllOrders.Find(x => x.Index == index);
 
@@ -581,8 +584,8 @@ namespace SomeDAO.Backend.Api
             string? category,
             string? language,
             string sort = "asc",
-            int page = 0,
-            int pageSize = 10)
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
             var sortMode = sort.ToLowerInvariant() switch
             {
@@ -625,8 +628,8 @@ namespace SomeDAO.Backend.Api
             string? status,
             string? language,
             string sort = "asc",
-            int page = 0,
-            int pageSize = 10)
+            [Range(0, int.MaxValue)] int page = 0,
+            [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
             if (status != null)
             {

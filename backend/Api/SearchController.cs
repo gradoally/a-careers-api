@@ -564,6 +564,109 @@ namespace SomeDAO.Backend.Api
             return list;
         }
 
+        /// <summary>
+        /// Get list of orders.
+        /// </summary>
+        /// <remarks>Translations and inner object are not provided!</remarks>
+        /// <param name="status">Status of returned orders.</param>
+        /// <param name="category">Category of returned orders.</param>
+        /// <param name="language">Language of returned orders.</param>
+        /// <param name="sort">Sort order: 'asc' or 'desc'.</param>
+        /// <param name="page">Page number to return (default 0).</param>
+        /// <param name="pageSize">Page size (default 10, max 100).</param>
+        [SwaggerResponse(400, "Invalid request.")]
+        [HttpGet]
+        public ActionResult<List<Order>> ListOrders(
+            int? status,
+            string? category,
+            string? language,
+            string sort = "asc",
+            int page = 0,
+            int pageSize = 10)
+        {
+            var sortMode = sort.ToLowerInvariant() switch
+            {
+                "asc" => 1,
+                "desc" => 2,
+                _ => 0,
+            };
+
+            if (sortMode == 0)
+            {
+                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
+                return ValidationProblem();
+            }
+
+            var list = cachedData.AllOrders
+                .Where(x => status == null || x.Status == status)
+                .Where(x => string.IsNullOrEmpty(category) || x.Category == category)
+                .Where(x => string.IsNullOrEmpty(language) || x.Language == language);
+
+            var sorted = sortMode == 1 ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
+
+            return sorted.Skip(page * pageSize).Take(pageSize)
+                .Select(x => x.ShallowCopy())
+                .Select(x => { x.Customer = null; x.Freelancer = null; return x; })
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get list of users.
+        /// </summary>
+        /// <remarks>Translations and inner object are not provided!</remarks>
+        /// <param name="status">Status of returned users ('active' or 'moderation' or 'banned').</param>
+        /// <param name="language">Language of returned users.</param>
+        /// <param name="sort">Sort order: 'asc' or 'desc'.</param>
+        /// <param name="page">Page number to return (default 0).</param>
+        /// <param name="pageSize">Page size (default 10, max 100).</param>
+        [SwaggerResponse(400, "Invalid request.")]
+        [HttpGet]
+        public ActionResult<List<User>> ListUsers(
+            string? status,
+            string? language,
+            string sort = "asc",
+            int page = 0,
+            int pageSize = 10)
+        {
+            if (status != null)
+            {
+                var statusValue = status.ToLowerInvariant() switch
+                {
+                    Data.User.StatusActive => Data.User.StatusActive,
+                    Data.User.StatusModeration => Data.User.StatusModeration,
+                    Data.User.StatusBanned => Data.User.StatusBanned,
+                    _ => null,
+                };
+
+                if (statusValue == null)
+                {
+                    ModelState.AddModelError(nameof(status), "Invalid value. Use 'active' or 'moderation' or 'banned'.");
+                    return ValidationProblem();
+                }
+            }
+
+            var sortMode = sort.ToLowerInvariant() switch
+            {
+                "asc" => 1,
+                "desc" => 2,
+                _ => 0,
+            };
+
+            if (sortMode == 0)
+            {
+                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
+                return ValidationProblem();
+            }
+
+            var list = cachedData.AllUsers
+                .Where(x => status == null || x.UserStatus == status)
+                .Where(x => string.IsNullOrEmpty(language) || x.Language == language);
+
+            var sorted = sortMode == 1 ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
+
+            return sorted.Skip(page * pageSize).Take(pageSize).ToList();
+        }
+
         protected IEnumerable<Order> SearchActiveOrders(
             List<Order> source,
             string? query,

@@ -40,19 +40,22 @@ namespace SomeDAO.Backend.Services
             var seqno = db.MainDb.Find<Settings>(Settings.LAST_SEQNO)?.LongValue ?? 0;
 
             var admins = db.MainDb.Table<Admin>().ToList();
-            logger.LogTrace("Loaded {Count} admins", admins.Count);
+            var adminsWithData = admins.Where(x => x.AdminAddress != master).ToList();
+            logger.LogTrace("Loaded {Count} admins with data (of {Count} total)", adminsWithData.Count, admins.Count);
 
             var users = db.MainDb.Table<User>().ToList();
-            logger.LogTrace("Loaded {Count} users", users.Count);
+            var usersWithData = users.Where(x => x.UserAddress != master).ToList();
+            logger.LogTrace("Loaded {Count} users with data (of {Count} total)", usersWithData.Count, users.Count);
 
             var orders = db.MainDb.Table<Order>().ToList();
-            var activeOrders = orders.Where(x => x.Status == Order.status_active).ToList();
-            logger.LogTrace("Loaded {Count} orders (including {Count} active)", orders.Count, activeOrders.Count);
+            var ordersWithData = orders.Where(x => x.CustomerAddress != master).ToList();
+            var activeOrders = ordersWithData.Where(x => x.Status == Order.status_active).ToList();
+            logger.LogTrace("Loaded {Count} orders (including {Count} active) of {Count} total", ordersWithData.Count, activeOrders.Count, orders.Count);
 
-            foreach (var order in orders)
+            foreach (var order in ordersWithData)
             {
-                order.Customer = users.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.CustomerAddress));
-                order.Freelancer = users.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.FreelancerAddress));
+                order.Customer = usersWithData.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.CustomerAddress));
+                order.Freelancer = usersWithData.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, order.FreelancerAddress));
             }
 
             logger.LogTrace("Users applied to Orders");
@@ -99,18 +102,18 @@ namespace SomeDAO.Backend.Services
             MasterAddress = master;
             InMainnet = mainnet;
             LastKnownSeqno = seqno;
-            AllAdmins = admins;
-            AllUsers = users;
-            AllOrders = orders;
+            AllAdmins = adminsWithData;
+            AllUsers = usersWithData;
+            AllOrders = ordersWithData;
             ActiveOrders = activeOrders;
             AllCategories = categories;
             AllLanguages = languages;
             ActiveOrdersTranslated = activeOrdersTranslated;
-            OrderCountByStatus = orders.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
-            OrderCountByCategory = orders.Where(x => !string.IsNullOrEmpty(x.Category)).GroupBy(x => x.Category!).ToDictionary(x => x.Key, x => x.Count());
-            OrderCountByLanguage = orders.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());
-            UserCountByStatus = users.GroupBy(x => x.UserStatus).ToDictionary(x => x.Key, x => x.Count());
-            UserCountByLanguage = users.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());
+            OrderCountByStatus = ordersWithData.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
+            OrderCountByCategory = ordersWithData.Where(x => !string.IsNullOrEmpty(x.Category)).GroupBy(x => x.Category!).ToDictionary(x => x.Key, x => x.Count());
+            OrderCountByLanguage = ordersWithData.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());
+            UserCountByStatus = usersWithData.GroupBy(x => x.UserStatus).ToDictionary(x => x.Key, x => x.Count());
+            UserCountByLanguage = usersWithData.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());
 
             logger.LogDebug(
                 "Reloaded at {Seqno}: {Count} admins, {Count} users, {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",

@@ -125,6 +125,11 @@ namespace SomeDAO.Backend.Services
                 return false;
             }
 
+            if (string.IsNullOrEmpty(state.Data))
+            {
+                throw new InvalidOperationException("State 'data' is empty (contract not yet deployed?), nothing to update");
+            }
+
             value.LastTxLt = state.LastTransactionId.Lt;
             value.LastTxHash = state.LastTransactionId.Hash;
 
@@ -172,6 +177,11 @@ namespace SomeDAO.Backend.Services
                 return false;
             }
 
+            if (string.IsNullOrEmpty(state.Data))
+            {
+                throw new InvalidOperationException("State 'data' is empty (contract not yet deployed?), nothing to update");
+            }
+
             value.LastTxLt = state.LastTransactionId.Lt;
             value.LastTxHash = state.LastTransactionId.Hash;
 
@@ -217,6 +227,11 @@ namespace SomeDAO.Backend.Services
             if (state.LastTransactionId.Lt == value.LastTxLt && state.LastTransactionId.Hash == value.LastTxHash)
             {
                 return false;
+            }
+
+            if (string.IsNullOrEmpty(state.Data))
+            {
+                throw new InvalidOperationException("State 'data' is empty (contract not yet deployed?), nothing to update");
             }
 
             value.LastTxLt = state.LastTransactionId.Lt;

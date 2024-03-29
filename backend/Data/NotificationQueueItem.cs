@@ -5,6 +5,8 @@ namespace SomeDAO.Backend.Data
 {
     public class NotificationQueueItem
     {
+        private static readonly JsonSerializerOptions options = new(JsonSerializerDefaults.Web);
+
         public NotificationQueueItem()
         {
             // Nothing
@@ -19,7 +21,7 @@ namespace SomeDAO.Backend.Data
             TxTime = orderActivity.Timestamp;
 
             orderActivity.Order = order;
-            Body = JsonSerializer.Serialize(orderActivity);
+            Body = JsonSerializer.Serialize(orderActivity, options);
         }
 
         [PrimaryKey, AutoIncrement]
@@ -32,6 +34,6 @@ namespace SomeDAO.Backend.Data
         public DateTimeOffset TxTime { get; set; }
 
         [NotNull]
-        public string Body { get; set; }
+        public string Body { get; set; } = string.Empty;
     }
 }

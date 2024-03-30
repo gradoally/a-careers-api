@@ -130,6 +130,9 @@ namespace SomeDAO.Backend.Data
         [Ignore]
         public string? TechnicalTaskTranslated { get; set; }
 
+        [Ignore]
+        public OrderResponse? CurrentUserResponse { get; set; }
+
         [JsonIgnore]
         public bool NeedTranslation { get; set; }
 

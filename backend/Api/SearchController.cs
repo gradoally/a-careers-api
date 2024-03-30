@@ -267,15 +267,23 @@ namespace SomeDAO.Backend.Api
         /// </summary>
         /// <param name="index">ID of order ('index' field from order contract).</param>
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
-        [SwaggerResponse(400, "Index is invalid (or order does not exist).")]
+        /// <param name="currentUserIndex">Index of current/active user (to have non-null <see cref="Order.CurrentUserResponse"/> in response).</param>
+        [SwaggerResponse(400, "Index is invalid (or order/user does not exist).")]
         [HttpGet]
-        public ActionResult<Order> GetOrder([Required] long index, string? translateTo = null)
+        public ActionResult<Order> GetOrder([Required] long index, string? translateTo = null, long? currentUserIndex = null)
         {
             var order = cachedData.AllOrders.Find(x => x.Index == index);
 
             if (order == null)
             {
                 ModelState.AddModelError(nameof(index), "Invalid index (or order does not exist).");
+                return ValidationProblem();
+            }
+
+            var user = currentUserIndex == null ? default : cachedData.AllUsers.Find(x => x.Index == currentUserIndex);
+            if (user == null && currentUserIndex != null)
+            {
+                ModelState.AddModelError(nameof(currentUserIndex), "Invalid index (or user does not exist).");
                 return ValidationProblem();
             }
 
@@ -309,6 +317,12 @@ namespace SomeDAO.Backend.Api
                     var translated = db.Find<Translation>(x => x.Hash == order.TechnicalTaskHash && x.Language == translateLanguage.Name);
                     order.TechnicalTaskTranslated = translated?.TranslatedText;
                 }
+            }
+
+            if (user != null)
+            {
+                var db = lazyDbProvider.Value.MainDb;
+                order.CurrentUserResponse = db.Table<OrderResponse>().FirstOrDefault(x => x.OrderId == order.Id && x.FreelancerAddress == user.UserAddress);
             }
 
             return order;

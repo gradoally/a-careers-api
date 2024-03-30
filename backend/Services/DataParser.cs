@@ -276,7 +276,7 @@ namespace SomeDAO.Backend.Services
 
             if (responsesDict != null)
             {
-                var dict = responsesDict.ParseDictRef(267, s => s.LoadAddressIntStd(true));
+                var dict = responsesDict.ParseDictRef(267, s => s.LoadAddressIntStd(false));
                 foreach (var item in dict)
                 {
                     var resp = new OrderResponse() { OrderId = value.Id, FreelancerAddress = item.Key };

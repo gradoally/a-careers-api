@@ -532,7 +532,7 @@ namespace SomeDAO.Backend.Api
         /// <summary>
         /// Get list of order activity.
         /// </summary>
-        /// <param name="index">ID of order ('index' field from user contract).</param>
+        /// <param name="index">ID of order ('index' field from order contract).</param>
         /// <param name="page">Page number to return (default 0).</param>
         /// <param name="pageSize">Page size (default 10, max 100).</param>
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
@@ -563,6 +563,35 @@ namespace SomeDAO.Backend.Api
             {
                 item.Sender = allUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, item.SenderAddress));
             }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Get list of order responses.
+        /// </summary>
+        /// <param name="index">ID of order ('index' field from order contract).</param>
+        /// <remarks>
+        /// Responses are sorted by price (high prices first). There can be no more than 255 responses,
+        ///   so no paging is used (always all responses are returned), and they may be sorted client-side when needed.
+        /// </remarks>
+        [SwaggerResponse(400, "Invalid (nonexisting) 'index' value.")]
+        [HttpGet]
+        public ActionResult<List<OrderResponse>> GetOrderResponses([Required] long index)
+        {
+            var order = cachedData.AllOrders.Find(x => x.Index == index);
+
+            if (order == null)
+            {
+                ModelState.AddModelError(nameof(index), "Invalid index (or order does not exist).");
+                return ValidationProblem();
+            }
+
+            var db = lazyDbProvider.Value.MainDb;
+            var list = db.Table<OrderResponse>()
+                .Where(x => x.OrderId == order.Id)
+                .OrderByDescending(x => x.Price)
+                .ToList();
 
             return list;
         }

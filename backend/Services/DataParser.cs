@@ -1,4 +1,5 @@
-﻿using SomeDAO.Backend.Data;
+﻿using System.Xml;
+using SomeDAO.Backend.Data;
 using TonLibDotNet;
 using TonLibDotNet.Cells;
 using TonLibDotNet.Types.Internal;
@@ -25,6 +26,9 @@ namespace SomeDAO.Backend.Services
         private static readonly string PropDescription = GetSHA256OfStringAsHex("description");
         private static readonly string PropTechnicalTask = GetSHA256OfStringAsHex("technical_task");
         private static readonly string PropLanguage = GetSHA256OfStringAsHex("language");
+        private static readonly string PropText = GetSHA256OfStringAsHex("text");
+        private static readonly string PropPrice = GetSHA256OfStringAsHex("price");
+        private static readonly string PropDeadline = GetSHA256OfStringAsHex("deadline");
 
         private readonly ILogger logger;
         private readonly ITonClient tonClient;
@@ -216,7 +220,7 @@ namespace SomeDAO.Backend.Services
             return true;
         }
 
-        public async Task<bool> UpdateOrder(Order value)
+        public async Task<(bool Updated, List<OrderResponse>? Responses)> UpdateOrder(Order value)
         {
             await tonClient.InitIfNeeded();
 
@@ -226,7 +230,7 @@ namespace SomeDAO.Backend.Services
 
             if (state.LastTransactionId.Lt == value.LastTxLt && state.LastTransactionId.Hash == value.LastTxHash)
             {
-                return false;
+                return (false, null);
             }
 
             if (string.IsNullOrEmpty(state.Data))
@@ -262,13 +266,39 @@ namespace SomeDAO.Backend.Services
             value.TimeForCheck = (int)slice.LoadUInt(32);
             _ = slice.LoadUInt(8); // protocol_fee_numerator
             _ = slice.LoadUInt(8); // protocol_fee_denominator
-            _ = slice.TryLoadDict(); // responses
+            var responsesDict = slice.TryLoadDict(); // responses
             value.Status = (int)slice.LoadUInt(8);
             _ = slice.LoadULong(64); // admin_count
             value.ResponsesCount = (int)slice.LoadUInt(8);
             value.CompletedAt = DateTimeOffset.FromUnixTimeSeconds(slice.LoadUInt(32));
 
-            return true;
+            var responses = new List<OrderResponse>();
+
+            if (responsesDict != null)
+            {
+                var dict = responsesDict.ParseDictRef(267, s => s.LoadAddressIntStd(true));
+                foreach (var item in dict)
+                {
+                    var resp = new OrderResponse() { OrderId = value.Id, FreelancerAddress = item.Key };
+                    try
+                    {
+                        var vals = item.Value.ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)), x => x, StringComparer.Ordinal);
+                        resp.Price = (decimal)vals[PropPrice].LoadCoinsToBigInt() / TonUtils.Coins.ToNano(1);
+                        resp.Deadline = DateTimeOffset.FromUnixTimeSeconds(vals[PropDeadline].LoadInt(32));
+                        resp.Text = vals[PropText].LoadStringSnake(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to parse response for order #{Index} {Address} from {User}", value.Index, value.Address, item.Key);
+                    }
+                    finally
+                    {
+                        responses.Add(resp);
+                    }
+                }
+            }
+
+            return (true, responses);
         }
 
         public async IAsyncEnumerable<OrderActivity> GetOrderActivities(Order order, long endLt)

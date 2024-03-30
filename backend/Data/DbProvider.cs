@@ -33,6 +33,7 @@ namespace SomeDAO.Backend.Data
             MainDb.CreateTable<Order>();
             MainDb.CreateTable<SyncQueueItem>();
             MainDb.CreateTable<OrderActivity>();
+            MainDb.CreateTable<OrderResponse>();
             MainDb.CreateTable<Category>();
             MainDb.CreateTable<Language>();
             MainDb.CreateTable<Translation>();

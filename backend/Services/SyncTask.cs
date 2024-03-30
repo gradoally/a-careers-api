@@ -160,7 +160,7 @@ namespace SomeDAO.Backend.Services
             }
 
             var endLt = order.LastTxLt;
-            var changed = await dataParser.UpdateOrder(order);
+            var (changed, responses) = await dataParser.UpdateOrder(order);
 
             if (changed)
             {
@@ -187,6 +187,19 @@ namespace SomeDAO.Backend.Services
                 else
                 {
                     logger.LogDebug("Tx for Order {Address} already exists: Op {OpCode} at {Time} ({Lt}/{Hash})", order.Address, activity.OpCode, activity.Timestamp, activity.TxLt, activity.TxHash);
+                }
+            }
+
+            if (responses != null)
+            {
+                var existingResponses = dbProvider.MainDb.Table<OrderResponse>().Where(x => x.OrderId == order.Id).ToList();
+                foreach (var resp in responses)
+                {
+                    if (!existingResponses.Exists(x => x.FreelancerAddress == resp.FreelancerAddress))
+                    {
+                        dbProvider.MainDb.Insert(resp);
+                        logger.LogDebug("Order {Address} got new response from {User}", order.Address, resp.FreelancerAddress);
+                    }
                 }
             }
 

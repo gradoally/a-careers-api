@@ -116,11 +116,14 @@ namespace SomeDAO.Backend.Services
             UserCountByLanguage = usersWithData.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());
 
             logger.LogDebug(
-                "Reloaded at {Seqno}: {Count} admins, {Count} users, {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",
+                "Reloaded at {Seqno}: {Count} of {Count} admins, {Count} of {Count} users, {Count} of {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",
                 LastKnownSeqno,
                 AllAdmins.Count,
+                admins.Count,
                 AllUsers.Count,
+                users.Count,
                 AllOrders.Count,
+                orders.Count,
                 ActiveOrders.Count,
                 AllCategories.Count,
                 AllLanguages.Count);

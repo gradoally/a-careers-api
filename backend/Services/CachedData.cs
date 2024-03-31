@@ -25,11 +25,11 @@ namespace SomeDAO.Backend.Services
         public List<Category> AllCategories { get; private set; } = new();
         public List<Language> AllLanguages { get; private set; } = new();
         public Dictionary<string, List<Order>> ActiveOrdersTranslated { get; private set; } = new();
-        public Dictionary<int, int> OrderCountByStatus { get; private set;} = new();
-        public Dictionary<string, int> OrderCountByCategory { get; private set;} = new();
-        public Dictionary<string, int> OrderCountByLanguage { get; private set;} = new();
-        public Dictionary<string, int> UserCountByStatus { get; private set;} = new();
-        public Dictionary<string, int> UserCountByLanguage { get; private set;} = new();
+        public Dictionary<int, int> OrderCountByStatus { get; private set; } = new();
+        public Dictionary<string, int> OrderCountByCategory { get; private set; } = new();
+        public Dictionary<string, int> OrderCountByLanguage { get; private set; } = new();
+        public Dictionary<string, int> UserCountByStatus { get; private set; } = new();
+        public Dictionary<string, int> UserCountByLanguage { get; private set; } = new();
 
         public Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {

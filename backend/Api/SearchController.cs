@@ -99,7 +99,6 @@ namespace SomeDAO.Backend.Api
             [Range(0, int.MaxValue)] int page = 0,
             [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
-
             var orderByMode = orderBy.ToLowerInvariant() switch
             {
                 "createdat" => 1,
@@ -129,16 +128,6 @@ namespace SomeDAO.Backend.Api
                 && !cachedData.ActiveOrdersTranslated.TryGetValue(translateTo, out source))
             {
                 ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
-            }
-
-            if (page < 0)
-            {
-                ModelState.AddModelError(nameof(page), "Must be non-negative.");
-            }
-
-            if (pageSize < 1 || pageSize > 100)
-            {
-                ModelState.AddModelError(nameof(pageSize), "Must be between 1 and 100.");
             }
 
             if (!ModelState.IsValid)

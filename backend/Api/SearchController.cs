@@ -99,7 +99,6 @@ namespace SomeDAO.Backend.Api
             [Range(0, int.MaxValue)] int page = 0,
             [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
-
             var orderByMode = orderBy.ToLowerInvariant() switch
             {
                 "createdat" => 1,
@@ -129,16 +128,6 @@ namespace SomeDAO.Backend.Api
                 && !cachedData.ActiveOrdersTranslated.TryGetValue(translateTo, out source))
             {
                 ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
-            }
-
-            if (page < 0)
-            {
-                ModelState.AddModelError(nameof(page), "Must be non-negative.");
-            }
-
-            if (pageSize < 1 || pageSize > 100)
-            {
-                ModelState.AddModelError(nameof(pageSize), "Must be between 1 and 100.");
             }
 
             if (!ModelState.IsValid)
@@ -216,6 +205,7 @@ namespace SomeDAO.Backend.Api
 
             if (user != null && translateLanguage != null && user.AboutHash != null)
             {
+                user = user.ShallowCopy();
                 var db = lazyDbProvider.Value.MainDb;
                 var translated = db.Find<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
                 user.AboutTranslated = translated?.TranslatedText;
@@ -254,6 +244,7 @@ namespace SomeDAO.Backend.Api
 
             if (translateLanguage != null && user.AboutHash != null)
             {
+                user = user.ShallowCopy();
                 var db = lazyDbProvider.Value.MainDb;
                 var translated = db.Find<Translation>(x => x.Hash == user.AboutHash && x.Language == translateLanguage.Name);
                 user.AboutTranslated = translated?.TranslatedText;
@@ -297,6 +288,8 @@ namespace SomeDAO.Backend.Api
                     return ValidationProblem();
                 }
             }
+
+            order = order.ShallowCopy();
 
             if (translateLanguage != null)
             {
@@ -367,6 +360,8 @@ namespace SomeDAO.Backend.Api
 
             if (order != null && translateLanguage != null)
             {
+                order = order.ShallowCopy();
+
                 var db = lazyDbProvider.Value.MainDb;
 
                 if (order.NameHash != null)
@@ -480,6 +475,8 @@ namespace SomeDAO.Backend.Api
 
             if (translateLanguage != null)
             {
+                list = list.Select(x => x.ShallowCopy()).ToList();
+
                 var db = lazyDbProvider.Value.MainDb;
 
                 foreach (var order in list)

@@ -49,7 +49,8 @@ namespace SomeDAO.Backend.Data
         /// Role of user who initiated this activity (by OpCode): 1 - customer, 2 - freelancer, 0 - other (admin?).
         /// </summary>
         [Ignore]
-        public int SenderRole {
+        public int SenderRole
+        {
             get
             {
                 return OpCode switch

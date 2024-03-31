@@ -1,5 +1,4 @@
-﻿using System.Xml;
-using SomeDAO.Backend.Data;
+﻿using SomeDAO.Backend.Data;
 using TonLibDotNet;
 using TonLibDotNet.Cells;
 using TonLibDotNet.Types.Internal;

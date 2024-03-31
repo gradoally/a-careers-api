@@ -41,6 +41,7 @@ namespace SomeDAO.Backend
             services.AddScoped<ISearchCacheUpdater, LocalSeachCacheUpdater>();
             services.AddSingleton<SearchCacheUpdateMiddleware>();
             services.AddSingleton<IndexerControlTask>();
+            services.AddSingleton<IndexerHealthUpdateMiddleware>();
 
             services.AddTask<CachedData>(o => o.AutoStart(bo.SearchCacheForceReloadInterval, TimeSpan.FromSeconds(1)));
             services.AddTask<IndexerControlTask>(o => o.AutoStart(IndexerControlTask.Interval, TimeSpan.FromSeconds(5)));
@@ -92,6 +93,7 @@ namespace SomeDAO.Backend
             app.UseMiddleware<RobotsTxtMiddleware>();
             app.UseMiddleware<HealthMiddleware>();
             app.UseMiddleware<SearchCacheUpdateMiddleware>();
+            app.UseMiddleware<IndexerHealthUpdateMiddleware>();
 
             app.UseSwagger();
             app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/backend/swagger.json", "Backend API"));

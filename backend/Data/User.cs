@@ -106,5 +106,10 @@ namespace SomeDAO.Backend.Data
         public DateTimeOffset LastSync { get; set; }
 
         #endregion
+
+        public User ShallowCopy()
+        {
+            return (User)MemberwiseClone();
+        }
     }
 }

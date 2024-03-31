@@ -142,6 +142,20 @@
                 }
             }
 
+            if (IndexerHealthUpdateMiddleware.Data == null || IndexerHealthUpdateMiddleware.Data.Count == 0)
+            {
+                allOk = false;
+                yield return ("Indexer health", "No data");
+            }
+            else
+            {
+                foreach(var item in IndexerHealthUpdateMiddleware.Data)
+                {
+                    allOk &= item.Ok;
+                    yield return (item.Name, item.Comment);
+                }
+            }
+
             yield return ("Healthy", allOk ? $"Yes, code {HealthCode}" : "NO");
         }
     }

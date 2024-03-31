@@ -24,6 +24,8 @@
 
         public PathString SearchCacheUpdatePath { get; set; } = "/update-search-cache";
 
+        public PathString HealthReportPath { get; set; } = "/update-indexer-health-data";
+
         public TimeSpan IndexerSubprocessRestartInterval { get; set; } = TimeSpan.FromHours(2);
     }
 }

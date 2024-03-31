@@ -25,11 +25,11 @@ namespace SomeDAO.Backend.Services
         public List<Category> AllCategories { get; private set; } = new();
         public List<Language> AllLanguages { get; private set; } = new();
         public Dictionary<string, List<Order>> ActiveOrdersTranslated { get; private set; } = new();
-        public Dictionary<int, int> OrderCountByStatus { get; private set;} = new();
-        public Dictionary<string, int> OrderCountByCategory { get; private set;} = new();
-        public Dictionary<string, int> OrderCountByLanguage { get; private set;} = new();
-        public Dictionary<string, int> UserCountByStatus { get; private set;} = new();
-        public Dictionary<string, int> UserCountByLanguage { get; private set;} = new();
+        public Dictionary<int, int> OrderCountByStatus { get; private set; } = new();
+        public Dictionary<string, int> OrderCountByCategory { get; private set; } = new();
+        public Dictionary<string, int> OrderCountByLanguage { get; private set; } = new();
+        public Dictionary<string, int> UserCountByStatus { get; private set; } = new();
+        public Dictionary<string, int> UserCountByLanguage { get; private set; } = new();
 
         public Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
@@ -116,11 +116,14 @@ namespace SomeDAO.Backend.Services
             UserCountByLanguage = usersWithData.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());
 
             logger.LogDebug(
-                "Reloaded at {Seqno}: {Count} admins, {Count} users, {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",
+                "Reloaded at {Seqno}: {Count} of {Count} admins, {Count} of {Count} users, {Count} of {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",
                 LastKnownSeqno,
                 AllAdmins.Count,
+                admins.Count,
                 AllUsers.Count,
+                users.Count,
                 AllOrders.Count,
+                orders.Count,
                 ActiveOrders.Count,
                 AllCategories.Count,
                 AllLanguages.Count);

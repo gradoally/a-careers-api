@@ -604,6 +604,11 @@ namespace SomeDAO.Backend.Api
                 .OrderByDescending(x => x.Price)
                 .ToList();
 
+            foreach (var item in list)
+            {
+                item.Freelancer = cachedData.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, item.FreelancerAddress));
+            }
+
             return list;
         }
 

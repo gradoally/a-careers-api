@@ -28,6 +28,7 @@ namespace SomeDAO.Backend.Services
         private static readonly string PropText = GetSHA256OfStringAsHex("text");
         private static readonly string PropPrice = GetSHA256OfStringAsHex("price");
         private static readonly string PropDeadline = GetSHA256OfStringAsHex("deadline");
+        private static readonly string PropResult = GetSHA256OfStringAsHex("result");
 
         private readonly ILogger logger;
         private readonly ITonClient tonClient;
@@ -278,21 +279,30 @@ namespace SomeDAO.Backend.Services
                 var dict = responsesDict.ParseDictRef(267, s => s.LoadAddressIntStd(false));
                 foreach (var item in dict)
                 {
-                    var resp = new OrderResponse() { OrderId = value.Id, FreelancerAddress = item.Key };
                     try
                     {
                         var vals = item.Value.ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)), x => x, StringComparer.Ordinal);
-                        resp.Price = (decimal)vals[PropPrice].LoadCoinsToBigInt() / TonUtils.Coins.ToNano(1);
-                        resp.Deadline = DateTimeOffset.FromUnixTimeSeconds(vals[PropDeadline].LoadInt(32));
-                        resp.Text = vals[PropText].LoadStringSnake(true);
+
+                        if (item.Key == value.FreelancerAddress)
+                        {
+                            value.Result = vals.TryGetValue(PropResult, out var s) ? s.LoadStringSnake(true) : null;
+                        }
+
+                        if (vals.TryGetValue(PropPrice, out var ps)
+                            && vals.TryGetValue(PropDeadline, out var ds)
+                            && vals.TryGetValue(PropText, out var ts))
+                        {
+                            var resp = new OrderResponse() { OrderId = value.Id, FreelancerAddress = item.Key };
+                            responses.Add(resp);
+                            // parse cells AFTER adding to list, so for wrong data we will have default "INVALID CELL CONTENT" text
+                            resp.Price = (decimal)ps.LoadCoinsToBigInt() / TonUtils.Coins.ToNano(1);
+                            resp.Deadline = DateTimeOffset.FromUnixTimeSeconds(ds.LoadInt(32));
+                            resp.Text = ts.LoadStringSnake(true);
+                        }
                     }
                     catch (Exception ex)
                     {
                         logger.LogError(ex, "Failed to parse response for order #{Index} {Address} from {User}", value.Index, value.Address, item.Key);
-                    }
-                    finally
-                    {
-                        responses.Add(resp);
                     }
                 }
             }

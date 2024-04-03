@@ -17,6 +17,9 @@
         /// </summary>
         public string FreelancerAddress { get; set; } = string.Empty;
 
+        [Ignore]
+        public User? Freelancer { get; set; }
+
         public string? Text { get; set; } = "INVALID CELL CONTENT";
 
         public decimal? Price { get; set; }

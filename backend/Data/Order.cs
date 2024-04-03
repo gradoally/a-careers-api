@@ -70,6 +70,8 @@ namespace SomeDAO.Backend.Data
 
         public DateTimeOffset CompletedAt { get; set; }
 
+        public string? Result { get; set; }
+
         /// <remarks>
         /// Copy of <see href="https://github.com/the-real-some-dao/a-careers-smc/blob/main/contracts/order.fc#L452-L465">(int) get_force_payment_availability() method_id</see>.
         /// </remarks>

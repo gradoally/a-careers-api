@@ -195,10 +195,17 @@ namespace SomeDAO.Backend.Services
                 var existingResponses = dbProvider.MainDb.Table<OrderResponse>().Where(x => x.OrderId == order.Id).ToList();
                 foreach (var resp in responses)
                 {
-                    if (!existingResponses.Exists(x => x.FreelancerAddress == resp.FreelancerAddress))
+                    var existing = existingResponses.Find(x => x.FreelancerAddress == resp.FreelancerAddress);
+                    if (existing == null)
                     {
                         dbProvider.MainDb.Insert(resp);
                         logger.LogDebug("Order {Address} got new response from {User}", order.Address, resp.FreelancerAddress);
+                    }
+                    else if (existing.Text != resp.Text)
+                    {
+                        existing.Text = resp.Text;
+                        dbProvider.MainDb.Update(existing);
+                        logger.LogDebug("Order {Address} updated response from {User}", order.Address, resp.FreelancerAddress);
                     }
                 }
             }

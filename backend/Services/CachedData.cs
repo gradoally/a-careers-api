@@ -30,6 +30,7 @@ namespace SomeDAO.Backend.Services
         public Dictionary<string, int> OrderCountByLanguage { get; private set; } = new();
         public Dictionary<string, int> UserCountByStatus { get; private set; } = new();
         public Dictionary<string, int> UserCountByLanguage { get; private set; } = new();
+        public Dictionary<long, HashSet<string>> ActiveOrdersUsersResponded { get; private set; } = new();
 
         public Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
@@ -99,6 +100,14 @@ namespace SomeDAO.Backend.Services
             }
             logger.LogTrace("Translations applied to ActiveOrders");
 
+            var activeOrdersUsersResponded = new Dictionary<long, HashSet<string>>();
+            foreach(var orderId in activeOrders.Select(x => x.Id))
+            {
+                var list = db.MainDb.Table<OrderResponse>().Where(x => x.OrderId == orderId).Select(x => x.FreelancerAddress).Distinct(StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
+                activeOrdersUsersResponded[orderId] = list;
+            }
+            logger.LogTrace("User responses applied to ActiveOrders");
+
             MasterAddress = master;
             InMainnet = mainnet;
             LastKnownSeqno = seqno;
@@ -109,6 +118,7 @@ namespace SomeDAO.Backend.Services
             AllCategories = categories;
             AllLanguages = languages;
             ActiveOrdersTranslated = activeOrdersTranslated;
+            ActiveOrdersUsersResponded = activeOrdersUsersResponded;
             OrderCountByStatus = ordersWithData.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
             OrderCountByCategory = ordersWithData.Where(x => !string.IsNullOrEmpty(x.Category)).GroupBy(x => x.Category!).ToDictionary(x => x.Key, x => x.Count());
             OrderCountByLanguage = ordersWithData.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());

@@ -417,30 +417,67 @@ namespace SomeDAO.Backend.Api
         }
 
         /// <summary>
-        /// Get list of user orders by role and status.
+        /// Get user statistics v2 - number of orders, detailed by 'artificial' status of user in order.
         /// </summary>
         /// <param name="index">ID of user ('index' field from user contract).</param>
-        /// <param name="role">Role of user: 'customer' or 'freelancer'.</param>
-        /// <param name="status">Status of orders to return.</param>
+        /// <remarks>
+        /// <para>Use <see cref="GetUserOrders">GetUserOrders</see> to get list of orders in particular status.</para>
+        /// </remarks>
+        [SwaggerResponse(400, "Index is invalid (or user does not exist).")]
+        [HttpGet]
+        public ActionResult<UserStat2> GetUserStats2([Required] long index)
+        {
+            var user = cachedData.AllUsers.Find(x => x.Index == index);
+
+            if (user == null)
+            {
+                ModelState.AddModelError(nameof(index), "Invalid index (or user does not exist).");
+                return ValidationProblem();
+            }
+
+            var orders = cachedData.AllOrders;
+            var responses = cachedData.ActiveOrdersUsersResponded;
+
+            var res = new UserStat2();
+
+            var ccnp = System.Text.Json.JsonNamingPolicy.CamelCase;
+
+            foreach (var val in Enum.GetValues<CustomerInOrderStatus>())
+            {
+                res.AsCustomerByStatus[ccnp.ConvertName(val.ToString())] = FilterOrdersByStatus(orders, user.UserAddress, val).Count();
+            }
+
+            foreach(var val in Enum.GetValues<FreelancerInOrderStatus>())
+            {
+                res.AsFreelancerByStatus[ccnp.ConvertName(val.ToString())] = FilterOrdersByStatus(orders, user.UserAddress, responses, val).Count();
+            }
+
+            return res;
+        }
+
+        /// <summary>
+        /// Get list of user orders by his 'artificial' status in order.
+        /// </summary>
+        /// <remarks>
+        /// <para>Exactly one of <paramref name="customerStatus"/> and <paramref name="freelancerStatus"/> must be specified.</para>
+        /// <para>Use <see cref="GetUserStats2">GetUserStats2</see> to get number of orders in each status.</para>
+        /// </remarks>
+        /// <param name="index">ID of user ('index' field from user contract).</param>
+        /// <param name="customerStatus">Status for orders where user is customer (case-insensitive).</param>
+        /// <param name="freelancerStatus">Status for orders where user is freelancer (case-insensitive).</param>
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' or 'role' value.")]
         [HttpGet]
         public ActionResult<List<Order>> GetUserOrders(
             [Required] long index,
-            [Required(AllowEmptyStrings = false)] string role,
-            [Required] int status,
+            CustomerInOrderStatus? customerStatus,
+            FreelancerInOrderStatus? freelancerStatus,
             string? translateTo = null)
         {
-            var mode = role.ToLowerInvariant() switch
+            if (customerStatus.HasValue == freelancerStatus.HasValue)
             {
-                "customer" => 1,
-                "freelancer" => 2,
-                _ => 0,
-            };
-
-            if (mode == 0)
-            {
-                ModelState.AddModelError(nameof(role), "Invalid 'role' value: use 'customer' or 'freelancer'.");
+                ModelState.AddModelError(nameof(freelancerStatus), $"Exactly one of '{nameof(customerStatus)}' and '{nameof(freelancerStatus)}' must be set.");
+                return ValidationProblem();
             }
 
             Language? translateLanguage = default;
@@ -454,11 +491,6 @@ namespace SomeDAO.Backend.Api
                 }
             }
 
-            if (!ModelState.IsValid)
-            {
-                return ValidationProblem();
-            }
-
             var user = cachedData.AllUsers.Find(x => x.Index == index);
 
             if (user == null)
@@ -467,11 +499,11 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
-            var query = mode == 1
-                ? cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress))
-                : cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
+            var query = customerStatus.HasValue
+                ? FilterOrdersByStatus(cachedData.AllOrders, user.UserAddress, customerStatus.Value)
+                : FilterOrdersByStatus(cachedData.AllOrders, user.UserAddress, cachedData.ActiveOrdersUsersResponded, freelancerStatus!.Value);
 
-            var list = query.Where(x => x.Status == status).ToList();
+            var list = query.OrderByDescending(x => x.Index).ToList();
 
             if (translateLanguage != null)
             {
@@ -748,6 +780,44 @@ namespace SomeDAO.Backend.Api
             return list;
         }
 
+        /// <inheritdoc cref="CustomerInOrderStatus"/>
+        protected IEnumerable<Order> FilterOrdersByStatus(IEnumerable<Order> source, string userAddress, CustomerInOrderStatus status)
+        {
+            var source2 = source.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, userAddress));
+
+            return status switch
+            {
+                CustomerInOrderStatus.OnModeration => source2.Where(x => x.Status == 0),
+                CustomerInOrderStatus.NoResponses => source2.Where(x => x.Status == 1 && x.ResponsesCount == 0),
+                CustomerInOrderStatus.HaveResponses => source2.Where(x => x.Status == 1 && x.ResponsesCount > 0),
+                CustomerInOrderStatus.OfferMade => source2.Where(x => x.Status == 2),
+                CustomerInOrderStatus.InTheWork => source2.Where(x => x.Status == 3),
+                CustomerInOrderStatus.PendingPayment => source2.Where(x => x.Status == 4),
+                CustomerInOrderStatus.Arbitration => source2.Where(x => x.Status == 8 || x.Status == 9),
+                CustomerInOrderStatus.Completed => source2.Where(x => x.Status == 6 || x.Status == 5 || x.Status == 7 || x.Status == 10),
+                _ => source.Where(x => false),
+            };
+        }
+
+        /// <inheritdoc cref="FreelancerInOrderStatus"/>
+        protected IEnumerable<Order> FilterOrdersByStatus(IEnumerable<Order> source, string userAddress, IDictionary<long, HashSet<string>> responses, FreelancerInOrderStatus status)
+        {
+            var source2 = source.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, userAddress));
+
+            return status switch
+            {
+                FreelancerInOrderStatus.ResponseSent => source.Where(x => x.Status == 1 && responses.TryGetValue(x.Index, out var hs) && hs.Contains(userAddress)),
+                FreelancerInOrderStatus.ResponseDenied => source.Where(x => x.Status == 2 && !StringComparer.Ordinal.Equals(x.FreelancerAddress, userAddress))
+                                                                .Where(x => responses.TryGetValue(x.Index, out var hs) && hs.Contains(userAddress)),
+                FreelancerInOrderStatus.AnOfferCameIn => source2.Where(x => x.Status == 2),
+                FreelancerInOrderStatus.InTheWork => source2.Where(x => x.Status == 3),
+                FreelancerInOrderStatus.OnInspection => source2.Where(x => x.Status == 4),
+                FreelancerInOrderStatus.Arbitration => source2.Where(x => x.Status == 8 || x.Status == 9),
+                FreelancerInOrderStatus.Terminated => source2.Where(x => x.Status == 6 || x.Status == 5 || x.Status == 7 || x.Status == 10),
+                _ => source.Where(x => false),
+            };
+        }
+
         public class BackendConfig
         {
             public string MasterContractAddress { get; set; } = string.Empty;
@@ -785,6 +855,13 @@ namespace SomeDAO.Backend.Api
             public int AsFreelancerTotal { get; set; }
 
             public Dictionary<int, int> AsFreelancerByStatus { get; set; } = new();
+        }
+
+        public class UserStat2
+        {
+            public Dictionary<string, int> AsCustomerByStatus { get; set; } = new();
+
+            public Dictionary<string, int> AsFreelancerByStatus { get; set; } = new();
         }
 
         public class FindResult<T>

@@ -93,55 +93,27 @@ namespace SomeDAO.Backend.Api
             string? category,
             string? language,
             decimal? minPrice,
-            string orderBy = "createdAt",
-            string sort = "asc",
+            OrderBy orderBy = OrderBy.CreatedAt,
+            Sort sort = Sort.Asc,
             string? translateTo = null,
             [Range(0, int.MaxValue)] int page = 0,
             [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
-            var orderByMode = orderBy.ToLowerInvariant() switch
-            {
-                "createdat" => 1,
-                "deadline" => 2,
-                _ => 0,
-            };
-
-            if (orderByMode == 0)
-            {
-                ModelState.AddModelError(nameof(orderBy), "Invalid value. Use 'createdAt' or 'deadline'.");
-            }
-
-            var sortMode = sort.ToLowerInvariant() switch
-            {
-                "asc" => 1,
-                "desc" => 2,
-                _ => 0,
-            };
-
-            if (sortMode == 0)
-            {
-                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
-            }
-
             var source = cachedData.ActiveOrders;
             if (!string.IsNullOrEmpty(translateTo)
                 && !cachedData.ActiveOrdersTranslated.TryGetValue(translateTo, out source))
             {
                 ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
-            }
-
-            if (!ModelState.IsValid)
-            {
                 return ValidationProblem();
             }
 
             var list = SearchActiveOrders(source!, query, category, language, minPrice);
 
-            var ordered = (orderByMode, sortMode) switch
+            var ordered = (orderBy, sort) switch
             {
-                (1, 1) => list.OrderBy(x => x.CreatedAt),
-                (1, _) => list.OrderBy(x => x.Deadline),
-                (_, 1) => list.OrderByDescending(x => x.CreatedAt),
+                (OrderBy.CreatedAt, Sort.Asc) => list.OrderBy(x => x.CreatedAt),
+                (OrderBy.CreatedAt, _) => list.OrderBy(x => x.Deadline),
+                (_, Sort.Asc) => list.OrderByDescending(x => x.CreatedAt),
                 (_, _) => list.OrderByDescending(x => x.Deadline),
             };
 
@@ -184,6 +156,7 @@ namespace SomeDAO.Backend.Api
             else if (!TonUtils.Address.TrySetBounceable(address, false, out address))
             {
                 ModelState.AddModelError(nameof(address), "Address not valid (wrong length, contains invalid characters, etc).");
+                return ValidationProblem();
             }
 
             Language? translateLanguage = default;
@@ -193,12 +166,8 @@ namespace SomeDAO.Backend.Api
                 if (translateLanguage == null)
                 {
                     ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
-                }
-            }
-
-            if (!ModelState.IsValid)
-            {
                 return ValidationProblem();
+                }
             }
 
             var user = cachedData.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, address));
@@ -338,6 +307,7 @@ namespace SomeDAO.Backend.Api
             else if (!TonUtils.Address.TrySetBounceable(address, true, out address))
             {
                 ModelState.AddModelError(nameof(address), "Address not valid (wrong length, contains invalid characters, etc).");
+                return ValidationProblem();
             }
 
             Language? translateLanguage = default;
@@ -349,11 +319,6 @@ namespace SomeDAO.Backend.Api
                     ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
                     return ValidationProblem();
                 }
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return ValidationProblem();
             }
 
             var order = cachedData.AllOrders.Find(x => StringComparer.Ordinal.Equals(x.Address, address));
@@ -406,8 +371,8 @@ namespace SomeDAO.Backend.Api
 
             var res = new UserStat()
             {
-                AsCustomerByStatus = asCustomer.GroupBy(x => x.Status).ToDictionary(x => (int)x.Key, x => x.Count()),
-                AsFreelancerByStatus = asFreelancer.GroupBy(x => x.Status).ToDictionary(x => (int)x.Key, x => x.Count()),
+                AsCustomerByStatus = asCustomer.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count()),
+                AsFreelancerByStatus = asFreelancer.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count()),
             };
 
             res.AsCustomerTotal = res.AsCustomerByStatus.Sum(x => x.Value);
@@ -417,30 +382,67 @@ namespace SomeDAO.Backend.Api
         }
 
         /// <summary>
-        /// Get list of user orders by role and status.
+        /// Get user statistics v2 - number of orders, detailed by 'artificial' status of user in order.
         /// </summary>
         /// <param name="index">ID of user ('index' field from user contract).</param>
-        /// <param name="role">Role of user: 'customer' or 'freelancer'.</param>
-        /// <param name="status">Status of orders to return.</param>
+        /// <remarks>
+        /// <para>Use <see cref="GetUserOrders">GetUserOrders</see> to get list of orders in particular status.</para>
+        /// </remarks>
+        [SwaggerResponse(400, "Index is invalid (or user does not exist).")]
+        [HttpGet]
+        public ActionResult<UserStat2> GetUserStats2([Required] long index)
+        {
+            var user = cachedData.AllUsers.Find(x => x.Index == index);
+
+            if (user == null)
+            {
+                ModelState.AddModelError(nameof(index), "Invalid index (or user does not exist).");
+                return ValidationProblem();
+            }
+
+            var orders = cachedData.AllOrders;
+            var responses = cachedData.ActiveOrdersUsersResponded;
+
+            var res = new UserStat2();
+
+            var ccnp = System.Text.Json.JsonNamingPolicy.CamelCase;
+
+            foreach (var val in Enum.GetValues<CustomerInOrderStatus>())
+            {
+                res.AsCustomerByStatus[ccnp.ConvertName(val.ToString())] = FilterOrdersByStatus(orders, user.UserAddress, val).Count();
+            }
+
+            foreach(var val in Enum.GetValues<FreelancerInOrderStatus>())
+            {
+                res.AsFreelancerByStatus[ccnp.ConvertName(val.ToString())] = FilterOrdersByStatus(orders, user.UserAddress, responses, val).Count();
+            }
+
+            return res;
+        }
+
+        /// <summary>
+        /// Get list of user orders by his 'artificial' status in order.
+        /// </summary>
+        /// <remarks>
+        /// <para>Exactly one of <paramref name="customerStatus"/> and <paramref name="freelancerStatus"/> must be specified.</para>
+        /// <para>Use <see cref="GetUserStats2">GetUserStats2</see> to get number of orders in each status.</para>
+        /// </remarks>
+        /// <param name="index">ID of user ('index' field from user contract).</param>
+        /// <param name="customerStatus">Status for orders where user is customer (case-insensitive).</param>
+        /// <param name="freelancerStatus">Status for orders where user is freelancer (case-insensitive).</param>
         /// <param name="translateTo">Language (key or code/name) of language to translate to. Must match one of supported languages (from config).</param>
         [SwaggerResponse(400, "Invalid (nonexisting) 'index' or 'role' value.")]
         [HttpGet]
         public ActionResult<List<Order>> GetUserOrders(
             [Required] long index,
-            [Required(AllowEmptyStrings = false)] string role,
-            [Required] int status,
+            CustomerInOrderStatus? customerStatus,
+            FreelancerInOrderStatus? freelancerStatus,
             string? translateTo = null)
         {
-            var mode = role.ToLowerInvariant() switch
+            if (customerStatus.HasValue == freelancerStatus.HasValue)
             {
-                "customer" => 1,
-                "freelancer" => 2,
-                _ => 0,
-            };
-
-            if (mode == 0)
-            {
-                ModelState.AddModelError(nameof(role), "Invalid 'role' value: use 'customer' or 'freelancer'.");
+                ModelState.AddModelError(nameof(freelancerStatus), $"Exactly one of '{nameof(customerStatus)}' and '{nameof(freelancerStatus)}' must be set.");
+                return ValidationProblem();
             }
 
             Language? translateLanguage = default;
@@ -454,11 +456,6 @@ namespace SomeDAO.Backend.Api
                 }
             }
 
-            if (!ModelState.IsValid)
-            {
-                return ValidationProblem();
-            }
-
             var user = cachedData.AllUsers.Find(x => x.Index == index);
 
             if (user == null)
@@ -467,11 +464,11 @@ namespace SomeDAO.Backend.Api
                 return ValidationProblem();
             }
 
-            var query = mode == 1
-                ? cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, user.UserAddress))
-                : cachedData.AllOrders.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress));
+            var query = customerStatus.HasValue
+                ? FilterOrdersByStatus(cachedData.AllOrders, user.UserAddress, customerStatus.Value)
+                : FilterOrdersByStatus(cachedData.AllOrders, user.UserAddress, cachedData.ActiveOrdersUsersResponded, freelancerStatus!.Value);
 
-            var list = query.Where(x => x.Status == status).ToList();
+            var list = query.OrderByDescending(x => x.Index).ToList();
 
             if (translateLanguage != null)
             {
@@ -628,29 +625,16 @@ namespace SomeDAO.Backend.Api
             int? status,
             string? category,
             string? language,
-            string sort = "asc",
+            Sort sort = Sort.Asc,
             [Range(0, int.MaxValue)] int page = 0,
             [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
-            var sortMode = sort.ToLowerInvariant() switch
-            {
-                "asc" => 1,
-                "desc" => 2,
-                _ => 0,
-            };
-
-            if (sortMode == 0)
-            {
-                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
-                return ValidationProblem();
-            }
-
             var list = cachedData.AllOrders
                 .Where(x => status == null || x.Status == status)
                 .Where(x => string.IsNullOrEmpty(category) || x.Category == category)
                 .Where(x => string.IsNullOrEmpty(language) || x.Language == language);
 
-            var sorted = sortMode == 1 ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
+            var sorted = sort == Sort.Asc ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
 
             return sorted.Skip(page * pageSize).Take(pageSize)
                 .Select(x => x.ShallowCopy())
@@ -670,47 +654,17 @@ namespace SomeDAO.Backend.Api
         [SwaggerResponse(400, "Invalid request.")]
         [HttpGet]
         public ActionResult<List<User>> ListUsers(
-            string? status,
+            UserStatus? status,
             string? language,
-            string sort = "asc",
+            Sort sort = Sort.Asc,
             [Range(0, int.MaxValue)] int page = 0,
             [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
-            if (status != null)
-            {
-                var statusValue = status.ToLowerInvariant() switch
-                {
-                    Data.User.StatusActive => Data.User.StatusActive,
-                    Data.User.StatusModeration => Data.User.StatusModeration,
-                    Data.User.StatusBanned => Data.User.StatusBanned,
-                    _ => null,
-                };
-
-                if (statusValue == null)
-                {
-                    ModelState.AddModelError(nameof(status), "Invalid value. Use 'active' or 'moderation' or 'banned'.");
-                    return ValidationProblem();
-                }
-            }
-
-            var sortMode = sort.ToLowerInvariant() switch
-            {
-                "asc" => 1,
-                "desc" => 2,
-                _ => 0,
-            };
-
-            if (sortMode == 0)
-            {
-                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
-                return ValidationProblem();
-            }
-
             var list = cachedData.AllUsers
                 .Where(x => status == null || x.UserStatus == status)
                 .Where(x => string.IsNullOrEmpty(language) || x.Language == language);
 
-            var sorted = sortMode == 1 ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
+            var sorted = sort == Sort.Asc ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
 
             return sorted.Skip(page * pageSize).Take(pageSize).ToList();
         }
@@ -748,43 +702,88 @@ namespace SomeDAO.Backend.Api
             return list;
         }
 
+        /// <inheritdoc cref="CustomerInOrderStatus"/>
+        protected IEnumerable<Order> FilterOrdersByStatus(IEnumerable<Order> source, string userAddress, CustomerInOrderStatus status)
+        {
+            var source2 = source.Where(x => StringComparer.Ordinal.Equals(x.CustomerAddress, userAddress));
+
+            return status switch
+            {
+                CustomerInOrderStatus.OnModeration => source2.Where(x => x.Status == 0),
+                CustomerInOrderStatus.NoResponses => source2.Where(x => x.Status == 1 && x.ResponsesCount == 0),
+                CustomerInOrderStatus.HaveResponses => source2.Where(x => x.Status == 1 && x.ResponsesCount > 0),
+                CustomerInOrderStatus.OfferMade => source2.Where(x => x.Status == 2),
+                CustomerInOrderStatus.InTheWork => source2.Where(x => x.Status == 3),
+                CustomerInOrderStatus.PendingPayment => source2.Where(x => x.Status == 4),
+                CustomerInOrderStatus.Arbitration => source2.Where(x => x.Status == 8 || x.Status == 9),
+                CustomerInOrderStatus.Completed => source2.Where(x => x.Status == 6 || x.Status == 5 || x.Status == 7 || x.Status == 10),
+                _ => source.Where(x => false),
+            };
+        }
+
+        /// <inheritdoc cref="FreelancerInOrderStatus"/>
+        protected IEnumerable<Order> FilterOrdersByStatus(IEnumerable<Order> source, string userAddress, IDictionary<long, HashSet<string>> responses, FreelancerInOrderStatus status)
+        {
+            var source2 = source.Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, userAddress));
+
+            return status switch
+            {
+                FreelancerInOrderStatus.ResponseSent => source.Where(x => x.Status == 1 && responses.TryGetValue(x.Index, out var hs) && hs.Contains(userAddress)),
+                FreelancerInOrderStatus.ResponseDenied => source.Where(x => x.Status == 2 && !StringComparer.Ordinal.Equals(x.FreelancerAddress, userAddress))
+                                                                .Where(x => responses.TryGetValue(x.Index, out var hs) && hs.Contains(userAddress)),
+                FreelancerInOrderStatus.AnOfferCameIn => source2.Where(x => x.Status == 2),
+                FreelancerInOrderStatus.InTheWork => source2.Where(x => x.Status == 3),
+                FreelancerInOrderStatus.OnInspection => source2.Where(x => x.Status == 4),
+                FreelancerInOrderStatus.Arbitration => source2.Where(x => x.Status == 8 || x.Status == 9),
+                FreelancerInOrderStatus.Terminated => source2.Where(x => x.Status == 6 || x.Status == 5 || x.Status == 7 || x.Status == 10),
+                _ => source.Where(x => false),
+            };
+        }
+
         public class BackendConfig
         {
             public string MasterContractAddress { get; set; } = string.Empty;
 
             public bool Mainnet { get; set; }
 
-            public List<Category> Categories { get; set; } = new();
+            public List<Category> Categories { get; set; } = [];
 
-            public List<Language> Languages { get; set; } = new();
+            public List<Language> Languages { get; set; } = [];
         }
 
         public class BackendStatistics
         {
             public int OrderCount { get; set; }
 
-            public Dictionary<int, int> OrderCountByStatus { get; set; } = new();
+            public Dictionary<int, int> OrderCountByStatus { get; set; } = [];
 
-            public Dictionary<string, int> OrderCountByCategory { get; set; } = new();
+            public Dictionary<string, int> OrderCountByCategory { get; set; } = [];
 
-            public Dictionary<string, int> OrderCountByLanguage { get; set; } = new();
+            public Dictionary<string, int> OrderCountByLanguage { get; set; } = [];
 
             public int UserCount { get; set; }
 
-            public Dictionary<string, int> UserCountByStatus { get; set; } = new();
+            public Dictionary<UserStatus, int> UserCountByStatus { get; set; } = [];
 
-            public Dictionary<string, int> UserCountByLanguage { get; set; } = new();
+            public Dictionary<string, int> UserCountByLanguage { get; set; } = [];
         }
 
         public class UserStat
         {
             public int AsCustomerTotal { get; set; }
 
-            public Dictionary<int, int> AsCustomerByStatus { get; set; } = new();
+            public Dictionary<int, int> AsCustomerByStatus { get; set; } = [];
 
             public int AsFreelancerTotal { get; set; }
 
-            public Dictionary<int, int> AsFreelancerByStatus { get; set; } = new();
+            public Dictionary<int, int> AsFreelancerByStatus { get; set; } = [];
+        }
+
+        public class UserStat2
+        {
+            public Dictionary<string, int> AsCustomerByStatus { get; set; } = [];
+
+            public Dictionary<string, int> AsFreelancerByStatus { get; set; } = [];
         }
 
         public class FindResult<T>

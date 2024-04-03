@@ -3,6 +3,7 @@ namespace SomeDAO.Backend
     using System;
     using System.Collections.Generic;
     using System.Reflection;
+    using System.Text.Json.Serialization;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.HttpOverrides;
     using Microsoft.Extensions.Configuration;
@@ -21,13 +22,15 @@ namespace SomeDAO.Backend
             this.configuration = configuration;
         }
 
-        public static IReadOnlyList<Type> RegisteredTasks { get; private set; } = new List<Type>();
+        public static IReadOnlyList<Type> RegisteredTasks { get; private set; } = [];
 
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.All);
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
-            services.AddControllers();
+            services
+                .AddControllers()
+                .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
 
             var optionsSection = configuration.GetSection("BackendOptions");
             services.Configure<BackendOptions>(optionsSection);

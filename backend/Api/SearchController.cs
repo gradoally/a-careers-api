@@ -93,55 +93,27 @@ namespace SomeDAO.Backend.Api
             string? category,
             string? language,
             decimal? minPrice,
-            string orderBy = "createdAt",
-            string sort = "asc",
+            OrderBy orderBy = OrderBy.CreatedAt,
+            Sort sort = Sort.Asc,
             string? translateTo = null,
             [Range(0, int.MaxValue)] int page = 0,
             [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
-            var orderByMode = orderBy.ToLowerInvariant() switch
-            {
-                "createdat" => 1,
-                "deadline" => 2,
-                _ => 0,
-            };
-
-            if (orderByMode == 0)
-            {
-                ModelState.AddModelError(nameof(orderBy), "Invalid value. Use 'createdAt' or 'deadline'.");
-            }
-
-            var sortMode = sort.ToLowerInvariant() switch
-            {
-                "asc" => 1,
-                "desc" => 2,
-                _ => 0,
-            };
-
-            if (sortMode == 0)
-            {
-                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
-            }
-
             var source = cachedData.ActiveOrders;
             if (!string.IsNullOrEmpty(translateTo)
                 && !cachedData.ActiveOrdersTranslated.TryGetValue(translateTo, out source))
             {
                 ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
-            }
-
-            if (!ModelState.IsValid)
-            {
                 return ValidationProblem();
             }
 
             var list = SearchActiveOrders(source!, query, category, language, minPrice);
 
-            var ordered = (orderByMode, sortMode) switch
+            var ordered = (orderBy, sort) switch
             {
-                (1, 1) => list.OrderBy(x => x.CreatedAt),
-                (1, _) => list.OrderBy(x => x.Deadline),
-                (_, 1) => list.OrderByDescending(x => x.CreatedAt),
+                (OrderBy.CreatedAt, Sort.Asc) => list.OrderBy(x => x.CreatedAt),
+                (OrderBy.CreatedAt, _) => list.OrderBy(x => x.Deadline),
+                (_, Sort.Asc) => list.OrderByDescending(x => x.CreatedAt),
                 (_, _) => list.OrderByDescending(x => x.Deadline),
             };
 
@@ -184,6 +156,7 @@ namespace SomeDAO.Backend.Api
             else if (!TonUtils.Address.TrySetBounceable(address, false, out address))
             {
                 ModelState.AddModelError(nameof(address), "Address not valid (wrong length, contains invalid characters, etc).");
+                return ValidationProblem();
             }
 
             Language? translateLanguage = default;
@@ -193,12 +166,8 @@ namespace SomeDAO.Backend.Api
                 if (translateLanguage == null)
                 {
                     ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
-                }
-            }
-
-            if (!ModelState.IsValid)
-            {
                 return ValidationProblem();
+                }
             }
 
             var user = cachedData.AllUsers.Find(x => StringComparer.Ordinal.Equals(x.UserAddress, address));
@@ -338,6 +307,7 @@ namespace SomeDAO.Backend.Api
             else if (!TonUtils.Address.TrySetBounceable(address, true, out address))
             {
                 ModelState.AddModelError(nameof(address), "Address not valid (wrong length, contains invalid characters, etc).");
+                return ValidationProblem();
             }
 
             Language? translateLanguage = default;
@@ -349,11 +319,6 @@ namespace SomeDAO.Backend.Api
                     ModelState.AddModelError(nameof(translateTo), "Unknown (unsupported) language value");
                     return ValidationProblem();
                 }
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return ValidationProblem();
             }
 
             var order = cachedData.AllOrders.Find(x => StringComparer.Ordinal.Equals(x.Address, address));
@@ -406,8 +371,8 @@ namespace SomeDAO.Backend.Api
 
             var res = new UserStat()
             {
-                AsCustomerByStatus = asCustomer.GroupBy(x => x.Status).ToDictionary(x => (int)x.Key, x => x.Count()),
-                AsFreelancerByStatus = asFreelancer.GroupBy(x => x.Status).ToDictionary(x => (int)x.Key, x => x.Count()),
+                AsCustomerByStatus = asCustomer.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count()),
+                AsFreelancerByStatus = asFreelancer.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count()),
             };
 
             res.AsCustomerTotal = res.AsCustomerByStatus.Sum(x => x.Value);
@@ -660,29 +625,16 @@ namespace SomeDAO.Backend.Api
             int? status,
             string? category,
             string? language,
-            string sort = "asc",
+            Sort sort = Sort.Asc,
             [Range(0, int.MaxValue)] int page = 0,
             [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
-            var sortMode = sort.ToLowerInvariant() switch
-            {
-                "asc" => 1,
-                "desc" => 2,
-                _ => 0,
-            };
-
-            if (sortMode == 0)
-            {
-                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
-                return ValidationProblem();
-            }
-
             var list = cachedData.AllOrders
                 .Where(x => status == null || x.Status == status)
                 .Where(x => string.IsNullOrEmpty(category) || x.Category == category)
                 .Where(x => string.IsNullOrEmpty(language) || x.Language == language);
 
-            var sorted = sortMode == 1 ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
+            var sorted = sort == Sort.Asc ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
 
             return sorted.Skip(page * pageSize).Take(pageSize)
                 .Select(x => x.ShallowCopy())
@@ -702,47 +654,17 @@ namespace SomeDAO.Backend.Api
         [SwaggerResponse(400, "Invalid request.")]
         [HttpGet]
         public ActionResult<List<User>> ListUsers(
-            string? status,
+            UserStatus? status,
             string? language,
-            string sort = "asc",
+            Sort sort = Sort.Asc,
             [Range(0, int.MaxValue)] int page = 0,
             [Range(MinPageSize, MaxPageSize)] int pageSize = MinPageSize)
         {
-            if (status != null)
-            {
-                var statusValue = status.ToLowerInvariant() switch
-                {
-                    Data.User.StatusActive => Data.User.StatusActive,
-                    Data.User.StatusModeration => Data.User.StatusModeration,
-                    Data.User.StatusBanned => Data.User.StatusBanned,
-                    _ => null,
-                };
-
-                if (statusValue == null)
-                {
-                    ModelState.AddModelError(nameof(status), "Invalid value. Use 'active' or 'moderation' or 'banned'.");
-                    return ValidationProblem();
-                }
-            }
-
-            var sortMode = sort.ToLowerInvariant() switch
-            {
-                "asc" => 1,
-                "desc" => 2,
-                _ => 0,
-            };
-
-            if (sortMode == 0)
-            {
-                ModelState.AddModelError(nameof(sort), "Invalid value. Use 'asc' or 'desc'.");
-                return ValidationProblem();
-            }
-
             var list = cachedData.AllUsers
                 .Where(x => status == null || x.UserStatus == status)
                 .Where(x => string.IsNullOrEmpty(language) || x.Language == language);
 
-            var sorted = sortMode == 1 ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
+            var sorted = sort == Sort.Asc ? list.OrderBy(x => x.Index) : list.OrderByDescending(x => x.Index);
 
             return sorted.Skip(page * pageSize).Take(pageSize).ToList();
         }
@@ -824,44 +746,44 @@ namespace SomeDAO.Backend.Api
 
             public bool Mainnet { get; set; }
 
-            public List<Category> Categories { get; set; } = new();
+            public List<Category> Categories { get; set; } = [];
 
-            public List<Language> Languages { get; set; } = new();
+            public List<Language> Languages { get; set; } = [];
         }
 
         public class BackendStatistics
         {
             public int OrderCount { get; set; }
 
-            public Dictionary<int, int> OrderCountByStatus { get; set; } = new();
+            public Dictionary<int, int> OrderCountByStatus { get; set; } = [];
 
-            public Dictionary<string, int> OrderCountByCategory { get; set; } = new();
+            public Dictionary<string, int> OrderCountByCategory { get; set; } = [];
 
-            public Dictionary<string, int> OrderCountByLanguage { get; set; } = new();
+            public Dictionary<string, int> OrderCountByLanguage { get; set; } = [];
 
             public int UserCount { get; set; }
 
-            public Dictionary<string, int> UserCountByStatus { get; set; } = new();
+            public Dictionary<UserStatus, int> UserCountByStatus { get; set; } = [];
 
-            public Dictionary<string, int> UserCountByLanguage { get; set; } = new();
+            public Dictionary<string, int> UserCountByLanguage { get; set; } = [];
         }
 
         public class UserStat
         {
             public int AsCustomerTotal { get; set; }
 
-            public Dictionary<int, int> AsCustomerByStatus { get; set; } = new();
+            public Dictionary<int, int> AsCustomerByStatus { get; set; } = [];
 
             public int AsFreelancerTotal { get; set; }
 
-            public Dictionary<int, int> AsFreelancerByStatus { get; set; } = new();
+            public Dictionary<int, int> AsFreelancerByStatus { get; set; } = [];
         }
 
         public class UserStat2
         {
-            public Dictionary<string, int> AsCustomerByStatus { get; set; } = new();
+            public Dictionary<string, int> AsCustomerByStatus { get; set; } = [];
 
-            public Dictionary<string, int> AsFreelancerByStatus { get; set; } = new();
+            public Dictionary<string, int> AsFreelancerByStatus { get; set; } = [];
         }
 
         public class FindResult<T>

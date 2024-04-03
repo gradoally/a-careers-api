@@ -22,7 +22,7 @@ namespace SomeDAO.Backend
             this.configuration = configuration;
         }
 
-        public static IReadOnlyList<Type> RegisteredTasks { get; private set; } = new List<Type>();
+        public static IReadOnlyList<Type> RegisteredTasks { get; private set; } = [];
 
         public void ConfigureServices(IServiceCollection services)
         {
@@ -30,7 +30,7 @@ namespace SomeDAO.Backend
             services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
             services
                 .AddControllers()
-                .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+                .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase, allowIntegerValues: false)));
 
             var optionsSection = configuration.GetSection("BackendOptions");
             services.Configure<BackendOptions>(optionsSection);

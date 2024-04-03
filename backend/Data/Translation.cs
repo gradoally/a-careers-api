@@ -8,7 +8,7 @@ namespace SomeDAO.Backend.Data
         public long Id { get; set; }
 
         [NotNull, Indexed(Name = "Hash_Lang", Unique = true, Order = 1)]
-        public byte[] Hash { get; set; } = Array.Empty<byte>();
+        public byte[] Hash { get; set; } = [];
 
         [NotNull, Indexed(Name = "Hash_Lang", Unique = true, Order = 2)]
         public string Language { get; set; } = string.Empty;

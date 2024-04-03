@@ -18,19 +18,19 @@ namespace SomeDAO.Backend.Services
         public string MasterAddress { get; private set; } = string.Empty;
         public bool InMainnet { get; private set; }
         public long LastKnownSeqno { get; private set; }
-        public List<Admin> AllAdmins { get; private set; } = new();
-        public List<User> AllUsers { get; private set; } = new();
-        public List<Order> AllOrders { get; private set; } = new();
-        public List<Order> ActiveOrders { get; private set; } = new();
-        public List<Category> AllCategories { get; private set; } = new();
-        public List<Language> AllLanguages { get; private set; } = new();
-        public Dictionary<string, List<Order>> ActiveOrdersTranslated { get; private set; } = new();
-        public Dictionary<int, int> OrderCountByStatus { get; private set; } = new();
-        public Dictionary<string, int> OrderCountByCategory { get; private set; } = new();
-        public Dictionary<string, int> OrderCountByLanguage { get; private set; } = new();
-        public Dictionary<string, int> UserCountByStatus { get; private set; } = new();
-        public Dictionary<string, int> UserCountByLanguage { get; private set; } = new();
-        public Dictionary<long, HashSet<string>> ActiveOrdersUsersResponded { get; private set; } = new();
+        public List<Admin> AllAdmins { get; private set; } = [];
+        public List<User> AllUsers { get; private set; } = [];
+        public List<Order> AllOrders { get; private set; } = [];
+        public List<Order> ActiveOrders { get; private set; } = [];
+        public List<Category> AllCategories { get; private set; } = [];
+        public List<Language> AllLanguages { get; private set; } = [];
+        public Dictionary<string, List<Order>> ActiveOrdersTranslated { get; private set; } = [];
+        public Dictionary<int, int> OrderCountByStatus { get; private set; } = [];
+        public Dictionary<string, int> OrderCountByCategory { get; private set; } = [];
+        public Dictionary<string, int> OrderCountByLanguage { get; private set; } = [];
+        public Dictionary<UserStatus, int> UserCountByStatus { get; private set; } = [];
+        public Dictionary<string, int> UserCountByLanguage { get; private set; } = [];
+        public Dictionary<long, HashSet<string>> ActiveOrdersUsersResponded { get; private set; } = [];
 
         public Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
@@ -42,16 +42,16 @@ namespace SomeDAO.Backend.Services
 
             var admins = db.MainDb.Table<Admin>().ToList();
             var adminsWithData = admins.Where(x => x.AdminAddress != master).ToList();
-            logger.LogTrace("Loaded {Count} admins with data (of {Count} total)", adminsWithData.Count, admins.Count);
+            logger.LogTrace("Loaded {CountWithData} admins with data (of {CountTotal} total)", adminsWithData.Count, admins.Count);
 
             var users = db.MainDb.Table<User>().ToList();
             var usersWithData = users.Where(x => x.UserAddress != master).ToList();
-            logger.LogTrace("Loaded {Count} users with data (of {Count} total)", usersWithData.Count, users.Count);
+            logger.LogTrace("Loaded {CountWithData} users with data (of {CountTotal} total)", usersWithData.Count, users.Count);
 
             var orders = db.MainDb.Table<Order>().ToList();
             var ordersWithData = orders.Where(x => x.CustomerAddress != master).ToList();
             var activeOrders = ordersWithData.Where(x => x.Status == Order.status_active).ToList();
-            logger.LogTrace("Loaded {Count} orders (including {Count} active) of {Count} total", ordersWithData.Count, activeOrders.Count, orders.Count);
+            logger.LogTrace("Loaded {CountWithData} orders (including {CountActive} active) of {CountTotal} total", ordersWithData.Count, activeOrders.Count, orders.Count);
 
             foreach (var order in ordersWithData)
             {
@@ -126,7 +126,7 @@ namespace SomeDAO.Backend.Services
             UserCountByLanguage = usersWithData.Where(x => !string.IsNullOrEmpty(x.Language)).GroupBy(x => x.Language!).ToDictionary(x => x.Key, x => x.Count());
 
             logger.LogDebug(
-                "Reloaded at {Seqno}: {Count} of {Count} admins, {Count} of {Count} users, {Count} of {Count} orders (incl. {Count} active), {Count} categories, {Count} languages.",
+                "Reloaded at {Seqno}: {Admins} of {AdminsTotal} admins, {Users} of {UsersTotal} users, {Orders} of {OrderTotal} orders (incl. {OrderActive} active), {Categ} categories, {Lang} languages.",
                 LastKnownSeqno,
                 AllAdmins.Count,
                 admins.Count,

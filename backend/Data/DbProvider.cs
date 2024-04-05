@@ -83,7 +83,7 @@ namespace SomeDAO.Backend.Data
         protected void UpdateDb(SQLiteConnection connection)
         {
             const int minVersion = 1;
-            const int lastVersion = 3;
+            const int lastVersion = 4;
 
             var ver = connection.Find<Settings>(Settings.KEY_DB_VERSION)?.IntValue ?? 0;
 
@@ -110,6 +110,17 @@ namespace SomeDAO.Backend.Data
             }
 
             if (ver == 2)
+            {
+                logger.LogInformation("Performing upgrade from version {Version}...", ver);
+
+                connection.Execute("UPDATE [Order] SET LastTxLt = 0, LastSync = 0;");
+
+                ver++;
+                connection.InsertOrReplace(new Settings(Settings.KEY_DB_VERSION, ver));
+                logger.LogInformation("DB version updated to {Version}", ver);
+            }
+
+            if (ver == 3)
             {
                 logger.LogInformation("Performing upgrade from version {Version}...", ver);
 

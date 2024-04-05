@@ -417,6 +417,18 @@ namespace SomeDAO.Backend.Api
                 res.AsFreelancerByStatus[ccnp.ConvertName(val.ToString())] = FilterOrdersByStatus(orders, user.UserAddress, responses, val).Count();
             }
 
+            // completed: orders where freelancer = <user> and: status in (6, 7) or (status=10 and freelancer_part = 100)
+            var completed = orders
+                .Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress))
+                .Where(x => x.Status == Order.status_completed || x.Status == Order.status_payment_forced || (x.Status == Order.status_arbitration_solved && x.ArbitrationFreelancerPart >= 100));
+            res.AsFreelancerByStatus[ccnp.ConvertName("CompletedTotal")] = completed.Count();
+
+            // failed: orders where freelancer = <user> and status 5 or (status 10 if freelancer_part < 100)
+            var failed = orders
+                .Where(x => StringComparer.Ordinal.Equals(x.FreelancerAddress, user.UserAddress))
+                .Where(x => x.Status == Order.status_refunded || (x.Status == Order.status_arbitration_solved && x.ArbitrationFreelancerPart < 100));
+            res.AsFreelancerByStatus[ccnp.ConvertName("FailedTotal")] = failed.Count();
+
             return res;
         }
 

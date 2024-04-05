@@ -5,10 +5,14 @@ namespace SomeDAO.Backend.Data
 {
     public class Order : IOrderContent, IBlockchainEntity
     {
-        // https://github.com/the-real-some-dao/a-careers-smc/blob/main/contracts/constants/constants.fc#L14-L17
+        // https://github.com/the-real-some-dao/a-careers-smc/blob/main/contracts/constants/constants.fc#L14-L23
         public const int status_active = 1;
         public const int status_in_progress = 3;
         public const int status_fulfilled = 4;
+        public const int status_refunded = 5;
+        public const int status_completed = 6;
+        public const int status_payment_forced = 7;
+        public const int status_arbitration_solved = 10;
 
         [JsonIgnore]
         [PrimaryKey, AutoIncrement]
@@ -69,6 +73,8 @@ namespace SomeDAO.Backend.Data
         public int TimeForCheck { get; set; }
 
         public DateTimeOffset CompletedAt { get; set; }
+
+        public int ArbitrationFreelancerPart { get; set; }
 
         public string? Result { get; set; }
 

@@ -20,10 +20,10 @@
         [Ignore]
         public User? Freelancer { get; set; }
 
-        public string? Text { get; set; } = "INVALID CELL CONTENT";
+        public string Text { get; set; } = "- INVALID CELL CONTENT -";
 
-        public decimal? Price { get; set; }
+        public decimal Price { get; set; }
 
-        public DateTimeOffset? Deadline { get; set; }
+        public DateTimeOffset Deadline { get; set; }
     }
 }

@@ -271,9 +271,6 @@ namespace SomeDAO.Backend.Services
             _ = slice.LoadULong(64); // admin_count
             value.ResponsesCount = (int)slice.LoadUInt(8);
             value.CompletedAt = DateTimeOffset.FromUnixTimeSeconds(slice.LoadUInt(32));
-            var arbitration = slice.LoadRef().BeginRead();
-            arbitration.SkipBits(64); // admin_voted_count
-            value.ArbitrationFreelancerPart = (int)arbitration.LoadUInt(8);
 
             var responses = new List<OrderResponse>();
 
@@ -286,9 +283,7 @@ namespace SomeDAO.Backend.Services
                     {
                         var vals = item.Value.ParseDict(256, x => Convert.ToHexString(x.LoadBitsToBytes(256)), x => x, StringComparer.Ordinal);
 
-                        var fromFreelancer = StringComparer.Ordinal.Equals(item.Key, value.FreelancerAddress);
-
-                        if (fromFreelancer)
+                        if (StringComparer.Ordinal.Equals(item.Key, value.FreelancerAddress))
                         {
                             value.Result = vals.TryGetValue(PropResult, out var s) ? s.LoadStringSnake(true) : null;
                         }
@@ -303,12 +298,6 @@ namespace SomeDAO.Backend.Services
                             resp.Price = (decimal)ps.LoadCoinsToBigInt() / TonUtils.Coins.ToNano(1);
                             resp.Deadline = DateTimeOffset.FromUnixTimeSeconds(ds.LoadInt(32));
                             resp.Text = ts.LoadStringSnake(true) ?? "- EMPTY -";
-
-                            if (value.Status == Order.status_waiting_freelancer && fromFreelancer)
-                            {
-                                value.Price = resp.Price;
-                                value.Deadline = resp.Deadline;
-                            }
                         }
                     }
                     catch (Exception ex)

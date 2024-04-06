@@ -304,7 +304,7 @@ namespace SomeDAO.Backend.Services
                             resp.Deadline = DateTimeOffset.FromUnixTimeSeconds(ds.LoadInt(32));
                             resp.Text = ts.LoadStringSnake(true) ?? "- EMPTY -";
 
-                            if (value.Status == Order.status_in_progress && fromFreelancer)
+                            if (value.Status == Order.status_waiting_freelancer && fromFreelancer)
                             {
                                 value.Price = resp.Price;
                                 value.Deadline = resp.Deadline;

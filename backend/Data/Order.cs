@@ -7,6 +7,7 @@ namespace SomeDAO.Backend.Data
     {
         // https://github.com/the-real-some-dao/a-careers-smc/blob/main/contracts/constants/constants.fc#L14-L23
         public const int status_active = 1;
+        public const int status_waiting_freelancer = 2;
         public const int status_in_progress = 3;
         public const int status_fulfilled = 4;
         public const int status_refunded = 5;
